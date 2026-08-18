@@ -1,0 +1,8 @@
+{
+  "algoritmo": "regressao_logistica",
+  "melhor_individuo": {
+    "C": 0.025631932887737845,
+    "penalty": "l2",
+    "class_weight": "balanced"
+  }
+}

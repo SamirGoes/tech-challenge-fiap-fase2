@@ -1,0 +1,8 @@
+{
+  "algoritmo": "regressao_linear",
+  "melhor_individuo": {
+    "fit_intercept": true,
+    "positive": true,
+    "threshold": 0.33747809594463696
+  }
+}
