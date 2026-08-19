@@ -5,3 +5,10 @@ __pycache__/
 .venv/
 venv/
 *.egg-info/
+
+# Terraform — nunca versionar estado nem segredos
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.*
+terraform/terraform.tfvars
+terraform/*.tfplan

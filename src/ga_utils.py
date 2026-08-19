@@ -43,6 +43,7 @@ def carregar_dados():
         y_train.reset_index(drop=True),
         y_test.reset_index(drop=True),
         list(X.columns),
+        scaler,
     )
 
 

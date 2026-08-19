@@ -113,9 +113,21 @@ Na execução registrada neste repositório, `ANTHROPIC_API_KEY` não estava con
 
 ## 6. Arquitetura da solução
 
-Ver [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) para os diagramas completos (visão geral, fluxo do GA, sequência da chamada à LLM).
+Ver [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) para os diagramas completos (visão geral, fluxo do GA, sequência da chamada à LLM, e a arquitetura de nuvem descrita abaixo).
+
+### 6.1 Implementação em nuvem (item opcional, pontuação extra)
+
+O melhor modelo otimizado (Regressão Logística, seção 3) foi exposto como uma API na AWS:
+
+- **AWS Lambda** (container image) rodando uma API FastAPI (`api/main.py`), com **autoscaling automático de 0 a N instâncias** conforme a carga de requisições — satisfaz o requisito de "escalabilidade automática para lidar com variações de demanda".
+- **Lambda Function URL** como endpoint HTTPS público, sem custo adicional de API Gateway.
+- **SSM Parameter Store** (`SecureString`) para a `ANTHROPIC_API_KEY`, evitando o custo do Secrets Manager.
+- **CloudWatch Logs**, automático, para monitoramento e logging.
+- **Terraform** (`terraform/`) declarando toda essa infraestrutura como código.
+- `scripts/treinar_modelo_final.py` treina o modelo uma única vez e persiste `modelo.joblib`/`scaler.joblib` — a API carrega esses artefatos na inicialização, sem re-treinar por requisição.
+
+Detalhes completos (diagrama, tabela de componentes, passos de deploy) em [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) e [terraform/README.md](terraform/README.md). O deploy real na conta AWS não foi executado como parte desta entrega — a infraestrutura está pronta e testada localmente (API validada com `uvicorn`, ver seção de verificação), faltando apenas `terraform apply` com credenciais AWS configuradas.
 
 ## 7. Escopo não incluído nesta fase
 
-- Implementação em nuvem / escalabilidade automática (item opcional do enunciado) — não implementado nesta entrega.
 - GA aplicado à CNN de pneumonia ou mamografia — fora do escopo definido para este projeto (foco nos 3 modelos tabulares do notebook 01).

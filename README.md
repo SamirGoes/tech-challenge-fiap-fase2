@@ -25,9 +25,16 @@ tech-challenge-fiap-fase2/
 ├── tests/                                 # Testes automatizados (pytest)
 ├── experiments/results/                   # Saída dos experimentos: histórico de fitness, melhores hiperparâmetros, comparação final
 ├── docs/
-│   ├── ARCHITECTURE.md                    # Diagramas de arquitetura (Mermaid)
+│   ├── ARCHITECTURE.md                    # Diagramas de arquitetura (Mermaid), incluindo a nuvem
 │   ├── GUIA_CONCEITOS.md                  # Glossário/FAQ dos conceitos de GA e prompt engineering
 │   └── GA_EXPLICADO.md                    # Leitura linha a linha do código do GA, com exemplos
+├── api/                                   # [opcional] API do modelo otimizado (FastAPI + Lambda)
+│   ├── main.py
+│   └── model/                             # modelo/scaler treinados, gerados por scripts/treinar_modelo_final.py
+├── scripts/
+│   └── treinar_modelo_final.py            # [opcional] treina e persiste o melhor modelo do GA
+├── terraform/                             # [opcional] infraestrutura como código (AWS)
+├── Dockerfile                             # [opcional] imagem da API para deploy em nuvem
 ├── RELATORIO_TECNICO.md                   # Relatório técnico da Fase 2
 └── requirements.txt
 ```
@@ -65,6 +72,20 @@ Baseline (Fase 1) vs. otimizado pelo GA, no mesmo holdout de teste (20%, `random
 
 Detalhes de cada experimento (hiperparâmetros encontrados, curvas de convergência, discussão sobre o Random Forest não ter melhorado no holdout) estão no [RELATORIO_TECNICO.md](RELATORIO_TECNICO.md).
 
+## Implementação em nuvem (opcional)
+
+O melhor modelo otimizado (Regressão Logística) é exposto como uma API (FastAPI) rodando em AWS Lambda com autoscaling automático, atrás de uma Function URL — arquitetura completa em [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md#implementação-em-nuvem-opcional-item-de-pontuação-extra), passos de deploy em [`terraform/README.md`](terraform/README.md).
+
+```bash
+# 1. Treinar e persistir o modelo (gera api/model/*.joblib)
+python scripts/treinar_modelo_final.py
+
+# 2. Testar a API localmente, sem AWS
+export ANTHROPIC_API_KEY="sua-chave-aqui"
+uvicorn api.main:app --reload
+curl -X POST localhost:8000/predict -H "Content-Type: application/json" -d '{"features": {...}}'
+```
+
 ## Entregáveis
 
 - [x] Repositório Git com código, testes e documentação
@@ -73,4 +94,5 @@ Detalhes de cada experimento (hiperparâmetros encontrados, curvas de convergên
 - [x] Testes automatizados (`tests/`)
 - [x] Relatório técnico (`RELATORIO_TECNICO.md`)
 - [x] Notebook de demonstração (`notebooks/03_ga_llm_breast_cancer.ipynb`)
+- [x] **Opcional/extra:** Implementação em nuvem — API com autoscaling (`api/`, `Dockerfile`, `terraform/`)
 - [ ] Vídeo de demonstração (até 15 min, YouTube/Vimeo)

@@ -1,0 +1,12 @@
+.git
+__pycache__
+*.pyc
+.pytest_cache
+notebooks/
+data/
+docs/
+experiments/
+tests/
+terraform/
+*.md
+.gitignore

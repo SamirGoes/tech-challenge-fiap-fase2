@@ -75,3 +75,45 @@ sequenceDiagram
 | `src/ga_utils.py` | `carregar_dados` (mesmo pré-processamento do notebook 01); `criar_individuo_*`/`mutar_*`/`fitness_*`/`construir_*` para cada um dos 3 algoritmos; `crossover` e `selecao_torneio` compartilhados; `calcular_metricas` |
 | `src/llm_utils.py` | `obter_features_importantes` (feature_importances_ ou coef_); `montar_prompt`; `gerar_explicacao` (chama a API Anthropic) |
 | `notebooks/03_ga_llm_breast_cancer.ipynb` | Orquestra tudo: carrega os dados, roda os 3 experimentos (loop de gerações visível na célula), compara com o baseline, gera as explicações via LLM |
+
+## Implementação em nuvem (opcional, item de pontuação extra)
+
+O item opcional do enunciado ("escalabilidade automática para lidar com variações de demanda") foi implementado expondo o melhor modelo otimizado (Regressão Logística, ver `RELATORIO_TECNICO.md`) como uma API na AWS.
+
+```mermaid
+flowchart TB
+    U[Cliente / vídeo de demo] -->|HTTPS| FU[Lambda Function URL]
+    FU --> LAMBDA["AWS Lambda\n(container image, autoscaling 0→N)"]
+    LAMBDA --> MODEL["modelo.joblib + scaler.joblib\n(api/model/, embutidos na imagem)"]
+    LAMBDA -->|lê chave| SSM["SSM Parameter Store\nSecureString: /fase2/anthropic-api-key"]
+    LAMBDA -->|chama| ANTHROPIC[API Anthropic]
+    LAMBDA -->|logs| CW[CloudWatch Logs]
+    ECR["ECR\n(imagem Docker)"] -->|deploy| LAMBDA
+```
+
+### Por que essa stack
+
+| Componente | Papel | Por quê |
+|---|---|---|
+| **AWS Lambda** (container image) | Roda a API (FastAPI via adaptador Mangum), escala de 0 a N instâncias por carga | Nível gratuito **permanente** (1M requisições + 400.000 GB-segundos/mês); é o recurso que satisfaz "escalabilidade automática" do enunciado |
+| **Lambda Function URL** | Endpoint HTTPS público | Não precisa de API Gateway — gratuito, direto no Lambda |
+| **SSM Parameter Store** (`SecureString`) | Guarda `ANTHROPIC_API_KEY` fora do código/imagem | Gratuito, ao contrário do Secrets Manager (~US$0,40/segredo/mês) |
+| **ECR** | Armazena a imagem Docker versionada | Pré-requisito do Lambda em modo container |
+| **CloudWatch Logs** | Logs automáticos de cada requisição | Satisfaz "monitoramento e logging adequados"; 5GB/mês grátis |
+| **Terraform** (`terraform/`) | Declara toda a infraestrutura acima como código | "Infraestrutura como código" pedido no enunciado |
+
+### Fluxo de uma requisição
+
+1. Cliente faz `POST /predict` com os dados do paciente (30 features).
+2. A Lambda já está com o modelo carregado em memória (`api/model/*.joblib`) — não treina nada em runtime.
+3. O modelo prevê benigno/maligno + probabilidade.
+4. `llm_utils.montar_prompt` monta o contexto; `llm_utils.gerar_explicacao` chama a API Anthropic (chave lida do SSM).
+5. Resposta: `{"predicao": ..., "probabilidade": ..., "explicacao": ...}`.
+
+### Controle de custo
+
+- `reserved_concurrent_executions = 5` (variável `concorrencia_maxima` no Terraform) — limita o teto de instâncias simultâneas, evitando custo surpresa.
+- Modelo Claude Haiku (padrão em `llm_utils.py`) — o mais barato da linha Anthropic.
+- Tudo dentro do nível gratuito da AWS para o volume esperado de uma demonstração acadêmica.
+
+Passos de deploy detalhados: [`terraform/README.md`](../terraform/README.md).
