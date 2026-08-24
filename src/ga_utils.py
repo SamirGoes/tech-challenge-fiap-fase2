@@ -18,6 +18,18 @@ from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_sc
 from sklearn.model_selection import StratifiedKFold, train_test_split
 from sklearn.preprocessing import StandardScaler
 
+import warnings
+warnings.filterwarnings(
+    "ignore",
+    message=".*'penalty' was deprecated.*",
+    category=FutureWarning,
+)
+warnings.filterwarnings(
+    "ignore",
+    category=UserWarning,
+    message=r"Inconsistent values:.*penalty is deprecated.*",
+)
+
 DATA_PATH = Path(__file__).resolve().parents[1] / "data" / "data.csv"
 
 
