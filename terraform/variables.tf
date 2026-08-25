@@ -15,9 +15,3 @@ variable "anthropic_api_key" {
   type        = string
   sensitive   = true
 }
-
-variable "concorrencia_maxima" {
-  description = "Número máximo de execuções concorrentes da Lambda — controla o teto do autoscaling e o custo máximo possível."
-  type        = number
-  default     = 5
-}

@@ -72,8 +72,6 @@ resource "aws_lambda_function" "api" {
   timeout     = 30
   memory_size = 1024
 
-  reserved_concurrent_executions = var.concorrencia_maxima
-
   environment {
     variables = {
       ANTHROPIC_API_KEY_PARAM = aws_ssm_parameter.anthropic_api_key.name
