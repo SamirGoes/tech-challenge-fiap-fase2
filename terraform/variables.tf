@@ -7,7 +7,7 @@ variable "aws_region" {
 variable "nome_projeto" {
   description = "Prefixo usado no nome dos recursos"
   type        = string
-  default     = "fase2-ga-llm"
+  default     = "tech-challenge-fiap-fase2-ga"
 }
 
 variable "anthropic_api_key" {
