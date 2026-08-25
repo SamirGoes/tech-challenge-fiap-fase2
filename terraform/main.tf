@@ -87,6 +87,16 @@ resource "aws_lambda_function_url" "api" {
   authorization_type = "NONE"
 }
 
+# authorization_type = "NONE" não basta sozinho: a Lambda ainda bloqueia
+# invocação anônima (403) sem essa permissão de recurso explícita.
+resource "aws_lambda_permission" "function_url_public" {
+  statement_id            = "AllowPublicInvokeFunctionUrl"
+  action                  = "lambda:InvokeFunctionUrl"
+  function_name           = aws_lambda_function.api.function_name
+  principal               = "*"
+  function_url_auth_type  = "NONE"
+}
+
 # --- Logs (satisfaz o requisito de monitoramento/logging do enunciado) ---
 resource "aws_cloudwatch_log_group" "api" {
   name              = "/aws/lambda/${aws_lambda_function.api.function_name}"
