@@ -91,17 +91,15 @@ Tabela gerada por `experiments/results/comparison_table.csv`, holdout de teste (
 
 ### 5.1 Abordagem
 
-Para cada predição individual (caso de teste), montamos um contexto estruturado — classe prevista, confiança, as features mais influentes daquele caso específico (via `feature_importances_` no Random Forest ou `coef_` nos modelos lineares, extraídas por `llm_utils.obter_features_importantes`) e as métricas gerais do modelo — e pedimos à LLM (Claude, `src/llm_utils.py`) uma explicação curta em português, sem jargão de ML, voltada a uma equipe médica.
+Para cada predição individual, injetamos no prompt os fatos do caso — se o resultado é **positivo** (tem doença / maligno) ou **negativo** (não tem / benigno), a **porcentagem de chance de o tumor ser maligno**, as características que mais pesaram naquela decisão (explicabilidade via `feature_importances_` ou `|coef_|`, com nomes em português e valores na escala original) e um resumo do que o Algoritmo Genético escolheu para aquele modelo. A LLM (Claude) faz o papel de NLP: transforma esses números num **laudo em tom humano**, no estilo “nossa detecção automática deu 80% principalmente por causa do tamanho do tumor…”.
 
-O notebook seleciona automaticamente o **melhor modelo otimizado entre os 3** (maior recall no holdout, desempate por F1) para gerar as explicações de demonstração — na execução registrada, foi a **Regressão Logística otimizada** (recall 97,6%, F1 0,988, ver seção 3). As features mostradas ao usuário estão na escala padronizada (`StandardScaler`) usada para treinar o modelo, não na unidade de medida original — uma limitação conhecida a melhorar em uma próxima iteração (converter de volta à escala original antes de montar o prompt).
+O notebook seleciona automaticamente o **melhor modelo otimizado entre os 3** (maior recall no holdout, desempate por F1) para gerar os laudos de demonstração — na execução registrada, foi a **Regressão Logística otimizada** (recall 97,6%, F1 0,988, ver seção 3).
 
 ### 5.2 Prompt engineering
 
-A função `montar_prompt` em `src/llm_utils.py`:
-- Define um papel explícito para a LLM (assistente de interpretação clínica).
-- Declara os limites da ferramenta ("NÃO substitui diagnóstico médico").
-- Passa dados estruturados (não uma pergunta aberta) — ancora a resposta em fatos concretos do modelo.
-- Especifica o formato de saída (3-5 frases, sem jargão técnico).
+Em `src/llm_utils.py` o prompt está separado em duas peças:
+- **System prompt** (`SYSTEM_PROMPT`): define o papel (profissional explicando um exame), o tom humano, a obrigação de usar só os números passados e o aviso de que não substitui diagnóstico médico.
+- **User prompt** (`montar_prompt`): só os dados daquele paciente + o contexto do GA. Não é uma pergunta aberta — ancora a resposta em fatos concretos e reduz alucinação.
 
 Ver `docs/GUIA_CONCEITOS.md` para o detalhamento de cada técnica.
 
@@ -109,7 +107,7 @@ Ver `docs/GUIA_CONCEITOS.md` para o detalhamento de cada técnica.
 
 Não existe métrica automática confiável para "qualidade de uma explicação médica em texto livre". Adotamos uma avaliação qualitativa manual com 3 critérios (nota 1-5): **clareza**, **correção clínica** e **utilidade acionável**, aplicada a um caso de acerto e um caso de erro do melhor modelo otimizado (rubric no notebook 03, seção de avaliação qualitativa).
 
-Na execução registrada neste repositório, `ANTHROPIC_API_KEY` não estava configurada — o notebook montou e exibiu os dois prompts estruturados (caso de acerto e caso de erro) mas não chamou a API de verdade, apenas confirmando que a integração está pronta e funcional. _Ao rodar com a chave configurada, preencher aqui as notas atribuídas na tabela `avaliacao_qualitativa` do notebook e um breve comentário sobre a qualidade observada._
+Na execução registrada neste repositório, o arquivo `.env` ainda não tinha a chave preenchida — o notebook montou e exibiu os dois prompts estruturados (caso de acerto e caso de erro) mas não chamou a API de verdade, apenas confirmando que a integração está pronta e funcional. _Ao rodar com o `.env` preenchido, preencher aqui as notas atribuídas na tabela `avaliacao_qualitativa` do notebook e um breve comentário sobre a qualidade observada._
 
 ## 6. Arquitetura da solução
 

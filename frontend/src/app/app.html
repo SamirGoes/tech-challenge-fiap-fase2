@@ -1,0 +1,159 @@
+<div class="app">
+  <header class="topo">
+    <p class="selo">Tech Challenge · Fase 2</p>
+    <h1>Triagem de câncer de mama</h1>
+    <p class="subtitulo">
+      Modelo otimizado por Algoritmo Genético, com laudo em linguagem natural pelo Claude.
+    </p>
+  </header>
+
+  <nav class="abas" aria-label="Modo de análise">
+    <button type="button" [class.ativa]="aba() === 'individual'" (click)="escolherAba('individual')">
+      Exame individual
+    </button>
+    <button type="button" [class.ativa]="aba() === 'lote'" (click)="escolherAba('lote')">
+      Relatório em lote
+    </button>
+  </nav>
+
+  @if (erro()) {
+    <p class="alerta" role="alert">{{ erro() }}</p>
+  }
+
+  @if (aba() === 'individual') {
+    <section class="painel">
+      <div class="acoes">
+        <button type="button" class="fantasma" (click)="preencher('maligno')">Exemplo positivo</button>
+        <button type="button" class="fantasma" (click)="preencher('benigno')">Exemplo negativo</button>
+        <button type="button" class="fantasma" (click)="limpar()">Limpar</button>
+      </div>
+
+      <form (submit)="$event.preventDefault(); enviarIndividual()">
+        <div class="grupos">
+          @for (grupo of grupos; track grupo.titulo) {
+            <fieldset class="grupo">
+              <legend>{{ grupo.titulo }}</legend>
+              <p class="grupo-desc">{{ grupo.descricao }}</p>
+              <div class="grade">
+                @for (campo of grupo.campos; track campo.chave) {
+                  <label>
+                    <span>{{ campo.rotulo }}</span>
+                    <input
+                      type="number"
+                      step="any"
+                      [name]="campo.chave"
+                      [value]="valores()[campo.chave] ?? ''"
+                      (input)="atualizarCampo(campo.chave, $event)"
+                    />
+                  </label>
+                }
+              </div>
+            </fieldset>
+          }
+        </div>
+
+        <button type="submit" class="principal" [disabled]="carregando()">
+          {{ carregando() ? 'Gerando laudo…' : 'Analisar exame' }}
+        </button>
+      </form>
+    </section>
+
+    @if (resultado(); as laudo) {
+      <article class="laudo" [class.positivo]="laudo.tem_doenca" [class.negativo]="!laudo.tem_doenca">
+        <header>
+          <p class="carimbo">{{ laudo.resultado === 'positivo' ? 'Positivo' : 'Negativo' }}</p>
+          <h2>{{ laudo.predicao }}</h2>
+          <p class="chance">{{ laudo.chance_doenca | percent: '1.0-0' }} de chance de o tumor ser maligno</p>
+          <div class="barra" aria-hidden="true">
+            <span [style.width.%]="percentual(laudo.chance_doenca)"></span>
+          </div>
+        </header>
+        <p class="texto-laudo">{{ laudo.explicacao }}</p>
+        <p class="rodape-laudo">Triagem automática. Não substitui diagnóstico médico.</p>
+      </article>
+    }
+  }
+
+  @if (aba() === 'lote') {
+    <section class="painel">
+      <div
+        class="soltar"
+        (dragover)="$event.preventDefault()"
+        (drop)="soltarArquivo($event)"
+      >
+        <p>Arraste o CSV aqui ou escolha o arquivo</p>
+        <p class="dica">Use <code>data/data-api.csv</code> (20 casos) para um teste rápido.</p>
+        <label class="arquivo">
+          Selecionar CSV
+          <input type="file" accept=".csv" (change)="escolherArquivo($event)" />
+        </label>
+        @if (arquivoLote(); as arquivo) {
+          <p class="arquivo-nome">{{ arquivo.name }}</p>
+        }
+      </div>
+
+      <button type="button" class="principal" [disabled]="carregando() || !arquivoLote()" (click)="enviarLote()">
+        {{ carregando() ? 'Claude está escrevendo cada laudo…' : 'Importar e gerar relatório' }}
+      </button>
+      @if (carregando() && aba() === 'lote') {
+        <p class="espera">Uma chamada ao Claude por linha. Com 20 casos isso pode levar alguns minutos.</p>
+      }
+    </section>
+
+    @if (relatorio(); as lote) {
+      <section class="relatorio">
+        <header class="relatorio-topo">
+          <div>
+            <p class="selo">Relatório do lote</p>
+            <h2>{{ lote.total }} exames lidos</h2>
+          </div>
+          <ul class="numeros">
+            <li>
+              <strong>{{ lote.positivos }}</strong>
+              <span>positivos</span>
+            </li>
+            <li>
+              <strong>{{ lote.negativos }}</strong>
+              <span>negativos</span>
+            </li>
+            @if (lote.acertos !== null) {
+              <li>
+                <strong>{{ lote.acertos }}</strong>
+                <span>acertos</span>
+              </li>
+            }
+          </ul>
+        </header>
+
+        <div class="casos">
+          @for (caso of lote.resultados; track caso.linha) {
+            <article class="caso" [class.positivo]="caso.tem_doenca" [class.negativo]="!caso.tem_doenca">
+              <button type="button" class="caso-cabeca" (click)="abrirCaso(caso.linha)">
+                <span class="caso-id">{{ caso.id || 'Linha ' + caso.linha }}</span>
+                <span class="carimbo pequeno">{{ caso.resultado === 'positivo' ? 'Positivo' : 'Negativo' }}</span>
+                <span class="caso-chance">{{ caso.chance_doenca | percent: '1.0-0' }}</span>
+                @if (caso.acertou !== null) {
+                  <span class="tag" [class.ok]="caso.acertou">{{ caso.acertou ? 'Acertou' : 'Errou' }}</span>
+                }
+              </button>
+              @if (casoAberto() === caso.linha) {
+                <div class="caso-corpo">
+                  <p>
+                    Predição: <strong>{{ caso.predicao }}</strong>
+                    @if (caso.diagnostico_real) {
+                      · real no CSV: <strong>{{ caso.diagnostico_real }}</strong>
+                    }
+                  </p>
+                  <div class="barra" aria-hidden="true">
+                    <span [style.width.%]="percentual(caso.chance_doenca)"></span>
+                  </div>
+                  <p class="texto-laudo">{{ caso.explicacao }}</p>
+                </div>
+              }
+            </article>
+          }
+        </div>
+      </section>
+    }
+  }
+</div>

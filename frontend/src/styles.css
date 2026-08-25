@@ -1,0 +1,39 @@
+:root {
+  --papel: #f4efe4;
+  --tinta: #1d2a24;
+  --teal: #0f5c56;
+  --teal-escuro: #0a3d39;
+  --positivo: #8f2d2d;
+  --negativo: #1f6b4a;
+  --linha: #d7cfc0;
+  --card: #fffdf8;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background:
+    radial-gradient(circle at top left, #e7f0ea 0, transparent 42%),
+    var(--papel);
+  color: var(--tinta);
+  font-family: 'Figtree', sans-serif;
+}
+
+body {
+  line-height: 1.5;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+code {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 0.9em;
+}

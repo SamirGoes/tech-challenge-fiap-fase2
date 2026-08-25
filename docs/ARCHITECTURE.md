@@ -73,7 +73,7 @@ sequenceDiagram
 | Arquivo | Responsabilidade |
 |---|---|
 | `src/ga_utils.py` | `carregar_dados` (mesmo pré-processamento do notebook 01); `criar_individuo_*`/`mutar_*`/`fitness_*`/`construir_*` para cada um dos 3 algoritmos; `crossover` e `selecao_torneio` compartilhados; `calcular_metricas` |
-| `src/llm_utils.py` | `obter_features_importantes` (feature_importances_ ou coef_); `montar_prompt`; `gerar_explicacao` (chama a API Anthropic) |
+| `src/llm_utils.py` | `SYSTEM_PROMPT`; `obter_features_importantes` (explicabilidade); `formatar_contexto_ga`; `montar_prompt`; `gerar_explicacao` (API Anthropic, com system prompt) |
 | `notebooks/03_ga_llm_breast_cancer.ipynb` | Orquestra tudo: carrega os dados, roda os 3 experimentos (loop de gerações visível na célula), compara com o baseline, gera as explicações via LLM |
 
 ## Implementação em nuvem (opcional, item de pontuação extra)
@@ -106,9 +106,9 @@ flowchart TB
 
 1. Cliente faz `POST /predict` com os dados do paciente (30 features).
 2. A Lambda já está com o modelo carregado em memória (`api/model/*.joblib`) — não treina nada em runtime.
-3. O modelo prevê benigno/maligno + probabilidade.
-4. `llm_utils.montar_prompt` monta o contexto; `llm_utils.gerar_explicacao` chama a API Anthropic (chave lida do SSM).
-5. Resposta: `{"predicao": ..., "probabilidade": ..., "explicacao": ...}`.
+3. O modelo prevê benigno/maligno, a chance de ter a doença (`chance_doenca` = P(maligno)) e se o resultado é positivo ou negativo.
+4. `llm_utils.montar_prompt` injeta esses dados + o contexto do GA; `llm_utils.gerar_explicacao` chama a API Anthropic com o system prompt (chave lida do `.env` local, ou do SSM na AWS).
+5. Resposta: `{"predicao": ..., "resultado": "positivo"|"negativo", "tem_doenca": ..., "chance_doenca": ..., "probabilidade": ..., "explicacao": ...}`.
 
 ### Controle de custo
 
