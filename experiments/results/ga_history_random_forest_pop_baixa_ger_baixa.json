@@ -1,0 +1,126 @@
+{
+  "algoritmo": "genetico_hiperparametros",
+  "modelo_base": "RandomForest",
+  "geracoes": [
+    {
+      "geracao": 1,
+      "melhor_fitness": 0.9441073637647968,
+      "melhores_params": {
+        "n_estimators": 58,
+        "max_depth": null,
+        "min_samples_split": 4,
+        "min_samples_leaf": 4,
+        "max_features": "sqrt",
+        "criterion": "gini"
+      }
+    },
+    {
+      "geracao": 2,
+      "melhor_fitness": 0.9466310762947782,
+      "melhores_params": {
+        "n_estimators": 73,
+        "max_depth": 8,
+        "min_samples_split": 15,
+        "min_samples_leaf": 1,
+        "max_features": "log2",
+        "criterion": "entropy"
+      }
+    },
+    {
+      "geracao": 3,
+      "melhor_fitness": 0.9479157716734539,
+      "melhores_params": {
+        "n_estimators": 58,
+        "max_depth": 8,
+        "min_samples_split": 12,
+        "min_samples_leaf": 4,
+        "max_features": "sqrt",
+        "criterion": "entropy"
+      }
+    },
+    {
+      "geracao": 4,
+      "melhor_fitness": 0.9522695554626692,
+      "melhores_params": {
+        "n_estimators": 73,
+        "max_depth": 8,
+        "min_samples_split": 3,
+        "min_samples_leaf": 1,
+        "max_features": "sqrt",
+        "criterion": "entropy"
+      }
+    },
+    {
+      "geracao": 5,
+      "melhor_fitness": 0.9522695554626692,
+      "melhores_params": {
+        "n_estimators": 73,
+        "max_depth": 8,
+        "min_samples_split": 3,
+        "min_samples_leaf": 1,
+        "max_features": "sqrt",
+        "criterion": "entropy"
+      }
+    },
+    {
+      "geracao": 6,
+      "melhor_fitness": 0.9522695554626692,
+      "melhores_params": {
+        "n_estimators": 73,
+        "max_depth": 8,
+        "min_samples_split": 3,
+        "min_samples_leaf": 1,
+        "max_features": "sqrt",
+        "criterion": "entropy"
+      }
+    },
+    {
+      "geracao": 7,
+      "melhor_fitness": 0.9540070639746937,
+      "melhores_params": {
+        "n_estimators": 61,
+        "max_depth": 8,
+        "min_samples_split": 3,
+        "min_samples_leaf": 1,
+        "max_features": "log2",
+        "criterion": "gini"
+      }
+    },
+    {
+      "geracao": 8,
+      "melhor_fitness": 0.9540070639746937,
+      "melhores_params": {
+        "n_estimators": 61,
+        "max_depth": 8,
+        "min_samples_split": 3,
+        "min_samples_leaf": 1,
+        "max_features": "log2",
+        "criterion": "gini"
+      }
+    },
+    {
+      "geracao": 9,
+      "melhor_fitness": 0.9621595166294941,
+      "melhores_params": {
+        "n_estimators": 205,
+        "max_depth": 16,
+        "min_samples_split": 3,
+        "min_samples_leaf": 1,
+        "max_features": "sqrt",
+        "criterion": "entropy"
+      }
+    },
+    {
+      "geracao": 10,
+      "melhor_fitness": 0.9621595166294941,
+      "melhores_params": {
+        "n_estimators": 205,
+        "max_depth": 16,
+        "min_samples_split": 3,
+        "min_samples_leaf": 1,
+        "max_features": "sqrt",
+        "criterion": "entropy"
+      }
+    }
+  ]
+}

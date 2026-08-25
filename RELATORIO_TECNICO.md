@@ -59,6 +59,31 @@ Hiperparâmetros encontrados pelo GA em cada experimento (execução registrada 
 
 A curva de convergência de cada experimento (melhor/média fitness por geração) está registrada nos gráficos do notebook 03 e nos arquivos `experiments/results/fitness_history_<algoritmo>.csv`.
 
+### 2.5 Testes de sensibilidade a população/gerações
+
+Os 3 experimentos da seção 2.4 já satisfazem o requisito, mas cada um varia população, mutação e gerações ao mesmo tempo — não isola o efeito de cada parâmetro. Esta seção roda os **3 algoritmos**, cada um com **3 configurações**, variando só **tamanho da população** e **número de gerações** (mutação fixa em 20%):
+
+| Config | População | Gerações | Avaliações de fitness | O que isola |
+|---|---|---|---|---|
+| `pop_baixa_ger_baixa` | 10 | 10 | 100 | baseline |
+| `pop_alta_ger_baixa` | 30 | 10 | 300 | efeito de só aumentar a população |
+| `pop_baixa_ger_alta` | 10 | 30 | 300 | efeito de só aumentar as gerações |
+
+Implementado em `ga_utils.executar_ga` — uma versão genérica do mesmo loop de GA (reaproveita `criar_individuo_*`/`mutar_*`/`fitness_*`/`crossover`/`selecao_torneio` já existentes) — e registrado na seção "Testes de sensibilidade a população/gerações" do notebook `03_ga_llm_breast_cancer.ipynb`. Cada uma das 9 combinações (algoritmo × config) também é exportada via `ga_utils.exportar_historico_json` como um JSON em `experiments/results/ga_history_<algoritmo>_<config>.json` — histórico geração a geração (melhor fitness + melhores hiperparâmetros daquela geração), no formato consumido pela visualização em **pygame**.
+
+Melhor fitness final (CV, treino) por algoritmo e configuração:
+
+| Algoritmo | baseline (100 aval.) | população alta (300 aval.) | gerações altas (300 aval.) |
+|---|---|---|---|
+| Regressão Linear | 0.9668 | 0.9668 | 0.9668 |
+| Regressão Logística | 0.9691 | 0.9734 | 0.9734 |
+| Random Forest | 0.9622 | 0.9635 | 0.9635 |
+
+**Leitura dos resultados:**
+- **Regressão Linear**: fitness idêntico nas 3 configurações — o espaço de busca é pequeno (2 genes booleanos + 1 contínuo) e o GA já converge com população/gerações mínimas; dar mais orçamento de busca não ajuda porque não há mais o que explorar.
+- **Regressão Logística e Random Forest**: aumentar só a população *ou* só as gerações — mantendo o mesmo total de avaliações de fitness (300 nos dois casos) — produz o **mesmo ganho** sobre o baseline. Nesse experimento, população e gerações se mostraram intercambiáveis como orçamento de busca, sem uma estratégia claramente superior à outra.
+- **Achado prático**: o que parece determinar o resultado é o número total de avaliações de fitness (população × gerações), não como esse orçamento é dividido entre as duas dimensões — pelo menos nas faixas de valores testadas (10–30 população, 10–30 gerações) e nesses 3 espaços de busca.
+
 ## 3. Comparativo de desempenho: original vs. otimizado
 
 Tabela gerada por `experiments/results/comparison_table.csv`, holdout de teste (20%, `random_state=42`), mesmo split usado no notebook 01:

@@ -1,0 +1,96 @@
+{
+  "algoritmo": "genetico_hiperparametros",
+  "modelo_base": "RegressaoLogistica",
+  "geracoes": [
+    {
+      "geracao": 1,
+      "melhor_fitness": 0.9591072881006842,
+      "melhores_params": {
+        "C": 1.5744685581930316,
+        "penalty": "l1",
+        "class_weight": "balanced"
+      }
+    },
+    {
+      "geracao": 2,
+      "melhor_fitness": 0.9591072881006842,
+      "melhores_params": {
+        "C": 1.5744685581930316,
+        "penalty": "l1",
+        "class_weight": "balanced"
+      }
+    },
+    {
+      "geracao": 3,
+      "melhor_fitness": 0.9616938400474206,
+      "melhores_params": {
+        "C": 1.5744685581930316,
+        "penalty": "l2",
+        "class_weight": null
+      }
+    },
+    {
+      "geracao": 4,
+      "melhor_fitness": 0.9616938400474206,
+      "melhores_params": {
+        "C": 1.5744685581930316,
+        "penalty": "l2",
+        "class_weight": null
+      }
+    },
+    {
+      "geracao": 5,
+      "melhor_fitness": 0.9616938400474206,
+      "melhores_params": {
+        "C": 1.5744685581930316,
+        "penalty": "l2",
+        "class_weight": null
+      }
+    },
+    {
+      "geracao": 6,
+      "melhor_fitness": 0.9616938400474206,
+      "melhores_params": {
+        "C": 1.5744685581930316,
+        "penalty": "l2",
+        "class_weight": null
+      }
+    },
+    {
+      "geracao": 7,
+      "melhor_fitness": 0.9616938400474206,
+      "melhores_params": {
+        "C": 1.5744685581930316,
+        "penalty": "l2",
+        "class_weight": null
+      }
+    },
+    {
+      "geracao": 8,
+      "melhor_fitness": 0.9616938400474206,
+      "melhores_params": {
+        "C": 1.5744685581930316,
+        "penalty": "l2",
+        "class_weight": null
+      }
+    },
+    {
+      "geracao": 9,
+      "melhor_fitness": 0.9691055251577447,
+      "melhores_params": {
+        "C": 0.13901569917285508,
+        "penalty": "l2",
+        "class_weight": "balanced"
+      }
+    },
+    {
+      "geracao": 10,
+      "melhor_fitness": 0.9691055251577447,
+      "melhores_params": {
+        "C": 0.13901569917285508,
+        "penalty": "l2",
+        "class_weight": "balanced"
+      }
+    }
+  ]
+}

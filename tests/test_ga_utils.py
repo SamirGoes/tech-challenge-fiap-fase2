@@ -1,3 +1,4 @@
+import json
 import random
 
 import numpy as np
@@ -78,3 +79,83 @@ def test_fitness_linear_threshold_baixo_favorece_recall():
     fitness_alto = ga_utils.fitness_linear(alto, X, y)
     # limiar baixo prevê mais casos como positivos -> mais recall -> fitness (que pesa recall) mais alto
     assert fitness_baixo >= fitness_alto
+
+
+def test_executar_ga_devolve_uma_entrada_por_geracao_com_melhor_individuo():
+    X, y = _dataset_sintetico()
+    historico = ga_utils.executar_ga(
+        criar_individuo=ga_utils.criar_individuo_rf,
+        mutar=ga_utils.mutar_rf,
+        fitness_fn=ga_utils.fitness_rf,
+        X=X,
+        y=y,
+        tamanho_populacao=5,
+        n_geracoes=3,
+        taxa_mutacao=0.2,
+        seed=0,
+    )
+    assert [g["geracao"] for g in historico] == [1, 2, 3]
+    for geracao in historico:
+        assert 0.0 <= geracao["melhor_fitness"] <= 1.0
+        assert set(geracao["melhores_params"]) == {
+            "n_estimators",
+            "max_depth",
+            "min_samples_split",
+            "min_samples_leaf",
+            "max_features",
+            "criterion",
+        }
+
+
+def test_executar_ga_com_elitismo_nao_piora_o_melhor_fitness_entre_geracoes():
+    X, y = _dataset_sintetico()
+    historico = ga_utils.executar_ga(
+        criar_individuo=ga_utils.criar_individuo_rf,
+        mutar=ga_utils.mutar_rf,
+        fitness_fn=ga_utils.fitness_rf,
+        X=X,
+        y=y,
+        tamanho_populacao=6,
+        n_geracoes=4,
+        taxa_mutacao=0.3,
+        seed=7,
+    )
+    melhores = [g["melhor_fitness"] for g in historico]
+    assert all(atual >= anterior for anterior, atual in zip(melhores, melhores[1:]))
+
+
+def test_executar_ga_e_deterministico_com_mesma_seed():
+    X, y = _dataset_sintetico()
+    kwargs = dict(
+        criar_individuo=ga_utils.criar_individuo_log,
+        mutar=ga_utils.mutar_log,
+        fitness_fn=ga_utils.fitness_log,
+        X=X,
+        y=y,
+        tamanho_populacao=5,
+        n_geracoes=3,
+        taxa_mutacao=0.3,
+        seed=1,
+    )
+    historico_1 = ga_utils.executar_ga(**kwargs)
+    historico_2 = ga_utils.executar_ga(**kwargs)
+    assert historico_1 == historico_2
+
+
+def test_exportar_historico_json_grava_no_formato_esperado_para_o_pygame(tmp_path):
+    historico = [
+        {"geracao": 1, "melhor_fitness": 0.85, "melhores_params": {"n_estimators": 100}},
+        {"geracao": 2, "melhor_fitness": 0.89, "melhores_params": {"n_estimators": 120}},
+    ]
+    caminho = tmp_path / "subdir" / "ga_history.json"
+
+    payload = ga_utils.exportar_historico_json(
+        historico, algoritmo="genetico_hiperparametros", modelo_base="RandomForest", caminho=caminho
+    )
+
+    assert payload == {
+        "algoritmo": "genetico_hiperparametros",
+        "modelo_base": "RandomForest",
+        "geracoes": historico,
+    }
+    assert json.loads(caminho.read_text(encoding="utf-8")) == payload
