@@ -146,14 +146,8 @@ LOG_BASELINE = {"C": 1.0, "penalty": "l2", "class_weight": None}
 
 
 def criar_individuo_log():
-    ''''
-    10 ** random.uniform(-3, 2) merece destaque: random.uniform(-3, 2) sorteia um expoente entre -3 e 2 (uniformemente), e 10 ** eleva. 
-    Isso dá chance igual pra C cair perto de 0.001, perto de 1, ou perto de 100 — se fosse random.uniform(0.001, 100) direto, 
-    quase todo sorteio cairia acima de 50 (porque a maior parte do intervalo numérico está lá), e valores pequenos de C quase nunca apareceriam.
-    MUITO CARA DE IA
-    '''
     return {
-        "C": 10 ** random.uniform(-3, 2),
+        "C": random.uniform(0.01, 10),
         "penalty": random.choice(["l1", "l2"]),
         "class_weight": random.choice([None, "balanced"]),
     }
@@ -162,7 +156,7 @@ def criar_individuo_log():
 def mutar_log(individuo, taxa=0.3):
     novo = dict(individuo)
     if random.random() < taxa:
-        novo["C"] = 10 ** random.uniform(-3, 2)
+        novo["C"] = random.uniform(0.01, 10)
     if random.random() < taxa:
         novo["penalty"] = random.choice(["l1", "l2"])
     if random.random() < taxa:
