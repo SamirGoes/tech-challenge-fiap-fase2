@@ -1,11 +1,11 @@
 {
   "algoritmo": "random_forest",
   "melhor_individuo": {
-    "n_estimators": 193,
-    "max_depth": 20,
-    "min_samples_split": 4,
-    "min_samples_leaf": 1,
-    "max_features": "sqrt",
+    "n_estimators": 200,
+    "max_depth": 5,
+    "min_samples_split": 2,
+    "min_samples_leaf": 3,
+    "max_features": null,
     "criterion": "entropy"
   }
 }

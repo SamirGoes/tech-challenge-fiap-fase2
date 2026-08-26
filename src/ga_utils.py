@@ -67,25 +67,17 @@ def calcular_metricas(y_true, y_pred):
         "f1": f1_score(y_true, y_pred, zero_division=0),
     }
 
+def _fitness_cv(construir_modelo, individuo, X_train, y_train, X_test, y_test):
 
-def _fitness_cv(construir_modelo, individuo, X, y, n_splits=5):
-    """Treina o modelo em validação cruzada estratificada e devolve o fitness
-    ponderado (0.5*recall + 0.3*F1 + 0.2*accuracy). Usado por fitness_rf e
-    fitness_log — fitness_linear é separada porque precisa aplicar o
-    threshold na predição contínua."""
-    skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)
-    X, y = np.asarray(X), np.asarray(y)
+    modelo = construir_modelo(individuo)
+    modelo.fit(X_train, y_train)
+    y_pred = modelo.predict(X_test)
 
-    accs, recs, f1s = [], [], []
-    for treino_idx, val_idx in skf.split(X, y):
-        modelo = construir_modelo(individuo)
-        modelo.fit(X[treino_idx], y[treino_idx])
-        y_pred = modelo.predict(X[val_idx])
-        accs.append(accuracy_score(y[val_idx], y_pred))
-        recs.append(recall_score(y[val_idx], y_pred, zero_division=0))
-        f1s.append(f1_score(y[val_idx], y_pred, zero_division=0))
+    acc = accuracy_score(y_test, y_pred)
+    rec = recall_score(y_test, y_pred, zero_division=0)
+    f1 = f1_score(y_test, y_pred, zero_division=0)
 
-    return 0.5 * np.mean(recs) + 0.3 * np.mean(f1s) + 0.2 * np.mean(accs)
+    return 0.5 * rec + 0.3 * f1 + 0.2 * acc
 
 
 # --------------------------------------------------------------------------
@@ -142,8 +134,8 @@ def construir_rf(individuo):
     )
 
 
-def fitness_rf(individuo, X, y):
-    return _fitness_cv(construir_rf, individuo, X, y)
+def fitness_rf(individuo, X_train, y_train, X_test, y_test):
+    return _fitness_cv(construir_rf, individuo, X_train, y_train, X_test, y_test)
 
 
 # --------------------------------------------------------------------------
@@ -189,8 +181,8 @@ def construir_log(individuo):
     )
 
 
-def fitness_log(individuo, X, y):
-    return _fitness_cv(construir_log, individuo, X, y)
+def fitness_log(individuo, X_train, y_train, X_test, y_test):
+    return _fitness_cv(construir_log, individuo, X_train, y_train, X_test, y_test)
 
 
 # --------------------------------------------------------------------------
@@ -229,21 +221,17 @@ def prever_linear(modelo, X, individuo):
     y_pred_continuo = modelo.predict(X)
     return (y_pred_continuo >= individuo["threshold"]).astype(int)
 
+def fitness_linear(individuo, X_train, Y_train, X_test, Y_test):
 
-def fitness_linear(individuo, X, y, n_splits=5):
-    skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)
-    X, y = np.asarray(X), np.asarray(y)
+    modelo = construir_linear(individuo)
+    modelo.fit(X_train, Y_train)
+    y_pred = prever_linear(modelo, X_test, individuo)
 
-    accs, recs, f1s = [], [], []
-    for treino_idx, val_idx in skf.split(X, y):
-        modelo = construir_linear(individuo)
-        modelo.fit(X[treino_idx], y[treino_idx])
-        y_pred = prever_linear(modelo, X[val_idx], individuo)
-        accs.append(accuracy_score(y[val_idx], y_pred))
-        recs.append(recall_score(y[val_idx], y_pred, zero_division=0))
-        f1s.append(f1_score(y[val_idx], y_pred, zero_division=0))
+    acc = accuracy_score(Y_test, y_pred)
+    rec = recall_score(Y_test, y_pred, zero_division=0)
+    f1 = f1_score(Y_test, y_pred, zero_division=0)
 
-    return 0.5 * np.mean(recs) + 0.3 * np.mean(f1s) + 0.2 * np.mean(accs)
+    return 0.5 * rec + 0.3 * f1 + 0.2 * acc
 
 
 # --------------------------------------------------------------------------
