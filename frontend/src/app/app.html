@@ -97,12 +97,12 @@
         <fieldset class="grupo">
           <legend>Medidas do exame simplificado</legend>
           <p class="grupo-desc">Ordem de importância no modelo vencedor do GA. Campos carregados da API.</p>
-          <div class="grade">
+          <div class="grade grade-simplificado">
             @for (campo of camposSimplificado(); track campo.chave; let i = $index) {
-              <label>
-                <span>
+              <label class="campo">
+                <span class="campo-rotulo">
                   <em class="rank">{{ i + 1 }}</em>
-                  {{ campo.rotulo }}
+                  <span>{{ campo.rotulo }}</span>
                 </span>
                 <input
                   type="number"
@@ -159,7 +159,8 @@
         </button>
       </div>
       <p class="dica">
-        O CSV completo (data-api.csv) funciona nos dois modos: o exame simplificado usa só as 10 medidas principais.
+        No exame completo use <code>data/data-api.csv</code>. No simplificado, use
+        <code>data/data-simplificado.csv</code> (10 casos, só as medidas deste modo).
       </p>
 
       <div
@@ -168,7 +169,13 @@
         (drop)="soltarArquivo($event)"
       >
         <p>Arraste o CSV aqui ou escolha o arquivo</p>
-        <p class="dica">Use <code>data/data-api.csv</code> (20 casos) para um teste rápido.</p>
+        <p class="dica">
+          @if (modeloLote() === 'simplificado') {
+            Use <code>data/data-simplificado.csv</code> (10 casos).
+          } @else {
+            Use <code>data/data-api.csv</code> (20 casos) para um teste rápido.
+          }
+        </p>
         <label class="arquivo">
           Selecionar CSV
           <input type="file" accept=".csv" (change)="escolherArquivo($event)" />
@@ -182,7 +189,14 @@
         {{ carregando() ? 'Claude está escrevendo cada laudo…' : 'Importar e gerar relatório' }}
       </button>
       @if (carregando() && aba() === 'lote') {
-        <p class="espera">Uma chamada ao Claude por linha. Com 20 casos isso pode levar alguns minutos.</p>
+        <p class="espera">
+          Uma chamada ao Claude por linha.
+          @if (modeloLote() === 'simplificado') {
+            Com 10 casos isso leva cerca de um minuto.
+          } @else {
+            Com 20 casos isso pode levar alguns minutos.
+          }
+        </p>
       }
     </section>
 

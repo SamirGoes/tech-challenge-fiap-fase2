@@ -123,6 +123,46 @@
   gap: 0.7rem;
 }
 
+.grade-simplificado {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.65rem 0.7rem;
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  justify-content: flex-end;
+}
+
+.campo-rotulo {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.28rem;
+  min-height: 2.5rem;
+  margin-bottom: 0.2rem;
+  line-height: 1.2;
+}
+
+.campo-rotulo span {
+  display: block;
+  margin: 0;
+  font-size: 0.68rem;
+}
+
+.grade-simplificado .rank {
+  min-width: 1.1rem;
+  height: 1.1rem;
+  margin-right: 0;
+  font-size: 0.62rem;
+  flex-shrink: 0;
+}
+
+.grade-simplificado input[type='number'] {
+  padding: 0.38rem 0.45rem;
+  font-size: 0.88rem;
+}
+
 label span {
   display: block;
   font-size: 0.78rem;
@@ -323,5 +363,9 @@ input[type='number'] {
 @media (max-width: 700px) {
   .caso-cabeca {
     flex-wrap: wrap;
+  }
+
+  .grade-simplificado {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

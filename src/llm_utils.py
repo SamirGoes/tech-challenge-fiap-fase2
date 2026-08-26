@@ -14,7 +14,7 @@ _MEDIDA = {
     "radius": "tamanho (raio)",
     "texture": "textura",
     "perimeter": "perímetro (contorno)",
-    "area": "área (tamanho do tumor)",
+    "area": "área",
     "smoothness": "suavidade da superfície",
     "compactness": "compactação",
     "concavity": "concavidade",
@@ -25,7 +25,7 @@ _MEDIDA = {
 _ESTATISTICA = {
     "mean": "média",
     "se": "variação",
-    "worst": "valor mais extremo",
+    "worst": "extremo",
 }
 
 NOMES_MODELO = {
@@ -63,7 +63,7 @@ Regras:
 
 
 def nome_amigavel(feature):
-    """Converte radius_worst -> 'tamanho (raio) (valor mais extremo)'."""
+    """Converte radius_worst -> 'tamanho (raio) (extremo)'."""
     if feature.endswith("_mean"):
         base, stat = feature[: -len("_mean")], "mean"
     elif feature.endswith("_se"):

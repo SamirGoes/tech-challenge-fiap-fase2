@@ -34,7 +34,7 @@ export const GRUPOS: GrupoFeature[] = [
     campos: MEDIDAS.map((m) => ({ chave: `${m.base}_se`, rotulo: m.rotulo })),
   },
   {
-    titulo: 'Valor mais extremo',
+    titulo: 'Extremo',
     descricao: 'Pior valor observado no exame',
     campos: MEDIDAS.map((m) => ({ chave: `${m.base}_worst`, rotulo: m.rotulo })),
   },
