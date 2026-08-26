@@ -1,5 +1,1 @@
-# Copie este arquivo para terraform.tfvars (não versionado) e preencha com
-# valores reais, ou passe via variável de ambiente TF_VAR_anthropic_api_key
-# em vez de escrever a chave num arquivo.
-
-anthropic_api_key = "sk-ant-..."
+anthropic_api_key = "placeholder-sem-chave-ainda"

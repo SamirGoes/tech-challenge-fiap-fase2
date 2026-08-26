@@ -67,6 +67,11 @@ def health():
     return {"status": "ok"}
 
 
+@app.get("/status")
+def status():
+    return {"status": "tech-challenge-fase-2"}
+
+
 @app.post("/predict", response_model=PredictResponse)
 def predict(payload: PredictRequest):
     faltando = set(feature_names) - set(payload.features)

@@ -72,8 +72,6 @@ resource "aws_lambda_function" "api" {
   timeout     = 30
   memory_size = 1024
 
-  reserved_concurrent_executions = var.concorrencia_maxima
-
   environment {
     variables = {
       ANTHROPIC_API_KEY_PARAM = aws_ssm_parameter.anthropic_api_key.name
@@ -87,6 +85,16 @@ resource "aws_lambda_function" "api" {
 resource "aws_lambda_function_url" "api" {
   function_name      = aws_lambda_function.api.function_name
   authorization_type = "NONE"
+}
+
+# authorization_type = "NONE" não basta sozinho: a Lambda ainda bloqueia
+# invocação anônima (403) sem essa permissão de recurso explícita.
+resource "aws_lambda_permission" "function_url_public" {
+  statement_id            = "AllowPublicInvokeFunctionUrl"
+  action                  = "lambda:InvokeFunctionUrl"
+  function_name           = aws_lambda_function.api.function_name
+  principal               = "*"
+  function_url_auth_type  = "NONE"
 }
 
 # --- Logs (satisfaz o requisito de monitoramento/logging do enunciado) ---
