@@ -34,7 +34,8 @@ tech-challenge-fiap-fase2/
 │   ├── main.py
 │   └── model/                             # modelo/scaler treinados, gerados por scripts/treinar_modelo_final.py
 ├── scripts/
-│   └── treinar_modelo_final.py            # [opcional] treina e persiste o melhor modelo do GA
+│   ├── treinar_modelo_final.py            # [opcional] treina e persiste o melhor modelo do GA
+│   └── treinar_modelo_simplificado.py     # [opcional] reexporta feature_importances.json sem reabrir o notebook
 ├── terraform/                             # [opcional] infraestrutura como código (AWS)
 ├── Dockerfile                             # [opcional] imagem da API para deploy em nuvem
 ├── RELATORIO_TECNICO.md                   # Relatório técnico da Fase 2
@@ -80,6 +81,9 @@ O melhor modelo otimizado (Regressão Logística) é exposto como uma API (FastA
 ```bash
 # 1. Treinar e persistir o modelo (gera api/model/*.joblib)
 python scripts/treinar_modelo_final.py
+# O exame simplificado sai do notebook (seção Feature importances).
+# Sem reabrir o Jupyter, dá para reexportar com:
+python scripts/treinar_modelo_simplificado.py
 
 # 2. Testar a API localmente, sem AWS (a chave sai do .env)
 python -m uvicorn api.main:app --reload
@@ -88,7 +92,8 @@ python -m uvicorn api.main:app --reload
 cd frontend
 npm start
 # Abre http://localhost:4200
-# Exame individual chama /predict. Lote importa data/data-api.csv em /predict/lote.
+# Exame completo chama /predict. A aba "Exame simplificado" lê GET /predict/simplificado/features
+# (lista vem do JSON exportado pelo notebook) e envia POST /predict/simplificado.
 ```
 
 ## Entregáveis

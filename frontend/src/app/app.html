@@ -11,6 +11,9 @@
     <button type="button" [class.ativa]="aba() === 'individual'" (click)="escolherAba('individual')">
       Exame individual
     </button>
+    <button type="button" [class.ativa]="aba() === 'simplificado'" (click)="escolherAba('simplificado')">
+      Exame simplificado
+    </button>
     <button type="button" [class.ativa]="aba() === 'lote'" (click)="escolherAba('lote')">
       Relatório em lote
     </button>
@@ -74,8 +77,91 @@
     }
   }
 
+  @if (aba() === 'simplificado') {
+    <section class="painel">
+      <p class="grupo-desc">
+        Versão resumida: as medidas que mais pesaram no modelo otimizado pelo GA
+        @if (algoritmoSimplificado()) {
+          ({{ algoritmoSimplificado() }})
+        }.
+        A lista vem de <code>feature_importances.json</code> — se o notebook rodar de novo, estes campos podem mudar.
+        O exame completo de 30 campos continua na aba anterior.
+      </p>
+      <div class="acoes">
+        <button type="button" class="fantasma" (click)="preencherSimplificado('maligno')">Exemplo positivo</button>
+        <button type="button" class="fantasma" (click)="preencherSimplificado('benigno')">Exemplo negativo</button>
+        <button type="button" class="fantasma" (click)="limparSimplificado()">Limpar</button>
+      </div>
+
+      <form (submit)="$event.preventDefault(); enviarSimplificado()">
+        <fieldset class="grupo">
+          <legend>Medidas do exame simplificado</legend>
+          <p class="grupo-desc">Ordem de importância no modelo vencedor do GA. Campos carregados da API.</p>
+          <div class="grade">
+            @for (campo of camposSimplificado(); track campo.chave; let i = $index) {
+              <label>
+                <span>
+                  <em class="rank">{{ i + 1 }}</em>
+                  {{ campo.rotulo }}
+                </span>
+                <input
+                  type="number"
+                  step="any"
+                  [name]="campo.chave"
+                  [value]="valoresSimplificado()[campo.chave] ?? ''"
+                  (input)="atualizarCampo(campo.chave, $event, 'simplificado')"
+                />
+              </label>
+            }
+          </div>
+        </fieldset>
+
+        <button type="submit" class="principal" [disabled]="carregando() || camposSimplificado().length === 0">
+          {{ carregando() ? 'Gerando laudo…' : 'Analisar exame simplificado' }}
+        </button>
+      </form>
+    </section>
+
+    @if (resultadoSimplificado(); as laudo) {
+      <article class="laudo" [class.positivo]="laudo.tem_doenca" [class.negativo]="!laudo.tem_doenca">
+        <header>
+          <p class="carimbo">{{ laudo.resultado === 'positivo' ? 'Positivo' : 'Negativo' }}</p>
+          <h2>{{ laudo.predicao }}</h2>
+          <p class="chance">{{ laudo.chance_doenca | percent: '1.0-0' }} de chance de o tumor ser maligno</p>
+          <div class="barra" aria-hidden="true">
+            <span [style.width.%]="percentual(laudo.chance_doenca)"></span>
+          </div>
+        </header>
+        <p class="texto-laudo">{{ laudo.explicacao }}</p>
+        <p class="rodape-laudo">Triagem automática do exame simplificado. Não substitui diagnóstico médico.</p>
+      </article>
+    }
+  }
+
   @if (aba() === 'lote') {
     <section class="painel">
+      <div class="acoes">
+        <button
+          type="button"
+          class="fantasma"
+          [class.ativa]="modeloLote() === 'completo'"
+          (click)="escolherModeloLote('completo')"
+        >
+          Exame completo
+        </button>
+        <button
+          type="button"
+          class="fantasma"
+          [class.ativa]="modeloLote() === 'simplificado'"
+          (click)="escolherModeloLote('simplificado')"
+        >
+          Exame simplificado
+        </button>
+      </div>
+      <p class="dica">
+        O CSV completo (data-api.csv) funciona nos dois modos: o exame simplificado usa só as 10 medidas principais.
+      </p>
+
       <div
         class="soltar"
         (dragover)="$event.preventDefault()"

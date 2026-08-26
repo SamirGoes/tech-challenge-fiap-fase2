@@ -130,6 +130,27 @@ label span {
   color: #3e524b;
 }
 
+.rank {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.35rem;
+  height: 1.35rem;
+  margin-right: 0.28rem;
+  border-radius: 99px;
+  background: #e4efe8;
+  color: var(--teal);
+  font-style: normal;
+  font-weight: 700;
+  font-size: 0.72rem;
+}
+
+.acoes button.ativa {
+  background: var(--teal);
+  color: #f7fffb;
+  border-color: var(--teal);
+}
+
 input[type='number'] {
   width: 100%;
   border: 1px solid var(--linha);

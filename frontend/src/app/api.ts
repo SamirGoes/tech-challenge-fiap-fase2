@@ -32,6 +32,20 @@ export interface PredictLoteResponse {
   erros: { linha?: number; erro?: string }[];
 }
 
+export interface FeatureSimplificado {
+  chave: string;
+  rotulo: string;
+  importancia: number;
+}
+
+export interface FeaturesSimplificadoResponse {
+  algoritmo: string;
+  metodo: string;
+  n: number;
+  metricas_holdout: Record<string, number>;
+  features: FeatureSimplificado[];
+}
+
 @Injectable({ providedIn: 'root' })
 export class Api {
   private readonly http = inject(HttpClient);
@@ -40,9 +54,23 @@ export class Api {
     return this.http.post<PredictResponse>('/predict', { features });
   }
 
+  preverSimplificado(features: Record<string, number>) {
+    return this.http.post<PredictResponse>('/predict/simplificado', { features });
+  }
+
   preverLote(arquivo: File) {
     const dados = new FormData();
     dados.append('arquivo', arquivo, arquivo.name);
     return this.http.post<PredictLoteResponse>('/predict/lote', dados);
+  }
+
+  preverLoteSimplificado(arquivo: File) {
+    const dados = new FormData();
+    dados.append('arquivo', arquivo, arquivo.name);
+    return this.http.post<PredictLoteResponse>('/predict/lote/simplificado', dados);
+  }
+
+  listarSimplificado() {
+    return this.http.get<FeaturesSimplificadoResponse>('/predict/simplificado/features');
   }
 }

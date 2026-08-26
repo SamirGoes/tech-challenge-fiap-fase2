@@ -7,9 +7,11 @@ hiperparâmetros que cada um aceita são diferentes. Seleção e crossover são
 compartilhados entre os três porque só mexem no dict do indivíduo, sem
 precisar saber o que cada chave significa.
 """
+import json
 import random
 from pathlib import Path
 
+import joblib
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
@@ -255,3 +257,115 @@ def selecao_torneio(populacao, fitnesses, k=3):
     indices = random.sample(range(len(populacao)), k)
     melhor_idx = max(indices, key=lambda i: fitnesses[i])
     return dict(populacao[melhor_idx])
+
+
+# --------------------------------------------------------------------------
+# Feature importances → exame simplificado (API + Angular leem o JSON)
+# --------------------------------------------------------------------------
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+N_FEATURES_SIMPLIFICADO = 10
+
+
+def construir_modelo(algoritmo, individuo):
+    if algoritmo == "random_forest":
+        return construir_rf(individuo)
+    if algoritmo == "regressao_logistica":
+        return construir_log(individuo)
+    if algoritmo == "regressao_linear":
+        return construir_linear(individuo)
+    raise ValueError(f"Algoritmo desconhecido: {algoritmo}")
+
+
+def prever_modelo(algoritmo, modelo, X, individuo=None):
+    if algoritmo == "regressao_linear":
+        return prever_linear(modelo, X, individuo)
+    return modelo.predict(X)
+
+
+def importancias_do_modelo(modelo, feature_names):
+    """Ranking das medidas segundo o modelo já treinado pelo GA.
+
+    Random Forest: feature_importances_.
+    Modelos lineares (logística / linear): |coef_|.
+    """
+    if hasattr(modelo, "feature_importances_"):
+        pesos = np.asarray(modelo.feature_importances_, dtype=float).ravel()
+        metodo = "feature_importances_"
+    elif hasattr(modelo, "coef_"):
+        pesos = np.abs(np.asarray(modelo.coef_, dtype=float)).ravel()
+        metodo = "abs(coef_)"
+    else:
+        pesos = np.ones(len(feature_names), dtype=float)
+        metodo = "uniforme"
+
+    ranking = sorted(
+        (
+            {"feature": nome, "importancia": float(peso)}
+            for nome, peso in zip(feature_names, pesos)
+        ),
+        key=lambda item: item["importancia"],
+        reverse=True,
+    )
+    return metodo, ranking
+
+
+def _dados_brutos():
+    df = pd.read_csv(DATA_PATH)
+    X = df.drop(columns=["id", "Unnamed: 32", "diagnosis"])
+    y = df["diagnosis"].map({"B": 0, "M": 1})
+    return train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+
+
+def persistir_exame_simplificado(
+    algoritmo,
+    modelo,
+    hiperparametros,
+    feature_names,
+    n=N_FEATURES_SIMPLIFICADO,
+    resultados_dir=None,
+    model_dir=None,
+):
+    """Lê as importâncias do modelo otimizado pelo GA, treina de novo só com
+    as N medidas mais importantes e grava o JSON que a API/o Angular consomem.
+
+    Arquivos:
+    - experiments/results/feature_importances.json
+    - api/model/feature_importances.json
+    - api/model/modelo_simplificado.joblib
+    - api/model/scaler_simplificado.joblib
+    """
+    resultados_dir = Path(resultados_dir) if resultados_dir else REPO_ROOT / "experiments" / "results"
+    model_dir = Path(model_dir) if model_dir else REPO_ROOT / "api" / "model"
+    resultados_dir.mkdir(parents=True, exist_ok=True)
+    model_dir.mkdir(parents=True, exist_ok=True)
+
+    metodo, ranking = importancias_do_modelo(modelo, feature_names)
+    escolhidas = ranking[:n]
+    nomes = [item["feature"] for item in escolhidas]
+
+    X_train, X_test, y_train, y_test = _dados_brutos()
+    scaler_simplificado = StandardScaler()
+    X_train_n = scaler_simplificado.fit_transform(X_train[nomes].to_numpy())
+    X_test_n = scaler_simplificado.transform(X_test[nomes].to_numpy())
+
+    modelo_simplificado = construir_modelo(algoritmo, hiperparametros)
+    modelo_simplificado.fit(X_train_n, y_train)
+    y_pred = prever_modelo(algoritmo, modelo_simplificado, X_test_n, hiperparametros)
+    metricas = calcular_metricas(y_test, y_pred)
+
+    payload = {
+        "algoritmo": algoritmo,
+        "metodo": metodo,
+        "n": n,
+        "hiperparametros": hiperparametros,
+        "metricas_holdout": metricas,
+        "features": escolhidas,
+        "ranking_completo": ranking,
+    }
+    texto = json.dumps(payload, indent=2, default=str)
+    (resultados_dir / "feature_importances.json").write_text(texto, encoding="utf-8")
+    (model_dir / "feature_importances.json").write_text(texto, encoding="utf-8")
+    joblib.dump(modelo_simplificado, model_dir / "modelo_simplificado.joblib")
+    joblib.dump(scaler_simplificado, model_dir / "scaler_simplificado.joblib")
+    return payload

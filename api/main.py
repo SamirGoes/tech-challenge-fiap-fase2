@@ -3,15 +3,21 @@
 Roda tanto localmente (uvicorn, para testar) quanto em produção como container
 Lambda (via o adaptador Mangum, que traduz eventos do Lambda em requisições ASGI).
 O modelo é carregado uma vez na inicialização — não re-treina nada por requisição.
+
+Há dois pacotes de modelo:
+- Exame completo (30 medidas): POST /predict e POST /predict/lote
+- Exame simplificado (10 medidas mais importantes): POST /predict/simplificado e POST /predict/lote/simplificado
 """
 from __future__ import annotations
 
 import json
 import os
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 
 import joblib
+import numpy as np
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict
@@ -23,6 +29,7 @@ if str(SRC_DIR) not in sys.path:
 import llm_utils  # noqa: E402
 import lote_utils  # noqa: E402
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
 MODEL_DIR = Path(__file__).resolve().parent / "model"
 SSM_PARAMETER_NAME = os.environ.get("ANTHROPIC_API_KEY_PARAM", "/fase2/anthropic-api-key")
 
@@ -34,6 +41,20 @@ CONTEXTO_GA = {
     "nome_modelo": "regressao_logistica",
     "hiperparametros": {"C": 0.0256, "penalty": "l2", "class_weight": "balanced"},
 }
+
+
+@dataclass
+class PacoteModelo:
+    modelo: object
+    scaler: object
+    feature_names: list[str]
+    metricas: dict
+    contexto_ga: str
+    ranking: list[dict] | None = None
+    algoritmo: str = "regressao_logistica"
+    metodo: str = ""
+    hiperparametros: dict | None = None
+
 
 app = FastAPI(title="Diagnóstico de Câncer de Mama — GA + LLM")
 app.add_middleware(
@@ -47,6 +68,55 @@ app.add_middleware(
 modelo = joblib.load(MODEL_DIR / "modelo.joblib")
 scaler = joblib.load(MODEL_DIR / "scaler.joblib")
 feature_names = json.loads((MODEL_DIR / "feature_names.json").read_text())
+
+PACOTE_COMPLETO = PacoteModelo(
+    modelo=modelo,
+    scaler=scaler,
+    feature_names=feature_names,
+    metricas=METRICAS_MODELO,
+    contexto_ga=llm_utils.formatar_contexto_ga(
+        CONTEXTO_GA["nome_modelo"], CONTEXTO_GA["hiperparametros"]
+    ),
+)
+
+
+def _carregar_pacote_simplificado() -> PacoteModelo | None:
+    """Lê o JSON exportado pelo notebook (feature importances do melhor modelo do GA)."""
+    ranking_path = MODEL_DIR / "feature_importances.json"
+    if not ranking_path.is_file():
+        ranking_path = REPO_ROOT / "experiments" / "results" / "feature_importances.json"
+    modelo_path = MODEL_DIR / "modelo_simplificado.joblib"
+    scaler_path = MODEL_DIR / "scaler_simplificado.joblib"
+    if not ranking_path.is_file() or not modelo_path.is_file() or not scaler_path.is_file():
+        return None
+
+    ranking_json = json.loads(ranking_path.read_text(encoding="utf-8"))
+    nomes = [item["feature"] for item in ranking_json.get("features") or []]
+    if not nomes:
+        return None
+
+    algoritmo = ranking_json.get("algoritmo") or "regressao_logistica"
+    hiperparams = ranking_json.get("hiperparametros") or CONTEXTO_GA["hiperparametros"]
+    metodo = ranking_json.get("metodo") or "feature_importances_"
+    contexto = (
+        llm_utils.formatar_contexto_ga(algoritmo, hiperparams)
+        + " O modelo do exame simplificado usa só as medidas mais importantes "
+        "depois do treino otimizado pelo Algoritmo Genético."
+    )
+    return PacoteModelo(
+        modelo=joblib.load(modelo_path),
+        scaler=joblib.load(scaler_path),
+        feature_names=nomes,
+        metricas=ranking_json.get("metricas_holdout") or METRICAS_MODELO,
+        contexto_ga=contexto,
+        ranking=ranking_json.get("features") or [],
+        algoritmo=algoritmo,
+        metodo=metodo,
+        hiperparametros=hiperparams,
+    )
+
+
+PACOTE_SIMPLIFICADO = _carregar_pacote_simplificado()
 
 
 def obter_chave_anthropic() -> str | None:
@@ -99,9 +169,20 @@ EXEMPLO_FEATURES = {
     "fractal_dimension_worst": 0.1189,
 }
 
+EXEMPLO_FEATURES_SIMPLIFICADO = {
+    nome: EXEMPLO_FEATURES[nome]
+    for nome in (PACOTE_SIMPLIFICADO.feature_names if PACOTE_SIMPLIFICADO else [])
+}
+
 
 class PredictRequest(BaseModel):
     model_config = ConfigDict(json_schema_extra={"example": {"features": EXEMPLO_FEATURES}})
+
+    features: dict[str, float]
+
+
+class PredictRequestSimplificado(BaseModel):
+    model_config = ConfigDict(json_schema_extra={"example": {"features": EXEMPLO_FEATURES_SIMPLIFICADO}})
 
     features: dict[str, float]
 
@@ -137,45 +218,78 @@ class PredictLoteResponse(BaseModel):
     erros: list[dict] = []
 
 
-def classificar_paciente(features: dict) -> dict:
+class FeatureSimplificado(BaseModel):
+    chave: str
+    rotulo: str
+    importancia: float
+
+
+class FeaturesSimplificadoResponse(BaseModel):
+    algoritmo: str
+    metodo: str
+    n: int
+    metricas_holdout: dict
+    features: list[FeatureSimplificado]
+
+
+def exigir_simplificado() -> PacoteModelo:
+    if PACOTE_SIMPLIFICADO is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Exame simplificado ainda sem ranking. Rode a seção de feature importances no notebook 03_ga_llm_breast_cancer.ipynb",
+        )
+    return PACOTE_SIMPLIFICADO
+
+
+def classificar_paciente(features: dict, pacote: PacoteModelo) -> dict:
     """Roda só o modelo (sem Claude). Usado no /predict e no lote."""
-    faltando = set(feature_names) - set(features)
+    faltando = set(pacote.feature_names) - set(features)
     if faltando:
         raise HTTPException(status_code=422, detail=f"Features faltando: {sorted(faltando)}")
 
-    valores_ordenados = [[features[nome] for nome in feature_names]]
-    valores_escalados = scaler.transform(valores_ordenados)
-    classe_predita = int(modelo.predict(valores_escalados)[0])
-    probas = modelo.predict_proba(valores_escalados)[0]
-    tem_doenca = classe_predita == 1
+    valores_ordenados = [[features[nome] for nome in pacote.feature_names]]
+    valores_escalados = pacote.scaler.transform(valores_ordenados)
+
+    if hasattr(pacote.modelo, "predict_proba"):
+        classe_predita = int(pacote.modelo.predict(valores_escalados)[0])
+        probas = pacote.modelo.predict_proba(valores_escalados)[0]
+        tem_doenca = classe_predita == 1
+        chance_doenca = float(probas[1])
+        probabilidade = float(probas[classe_predita])
+    else:
+        continuo = float(pacote.modelo.predict(valores_escalados)[0])
+        limiar = float((pacote.hiperparametros or {}).get("threshold", 0.5))
+        tem_doenca = continuo >= limiar
+        classe_predita = 1 if tem_doenca else 0
+        chance_doenca = float(np.clip(continuo, 0.0, 1.0))
+        probabilidade = chance_doenca if tem_doenca else float(1.0 - chance_doenca)
+
     return {
         "valores_escalados": valores_escalados,
         "predicao": "Maligno" if tem_doenca else "Benigno",
         "resultado": "positivo" if tem_doenca else "negativo",
         "tem_doenca": tem_doenca,
-        "chance_doenca": float(probas[1]),
-        "probabilidade": float(probas[classe_predita]),
+        "chance_doenca": chance_doenca,
+        "probabilidade": probabilidade,
     }
 
 
-def gerar_laudo_individual(classificacao: dict, chave=None) -> str:
+def gerar_laudo_individual(classificacao: dict, pacote: PacoteModelo, chave=None) -> str:
     chave = chave if chave is not None else obter_chave_anthropic()
     if not chave:
         return "Claude não foi chamado: chave não encontrada no arquivo .env."
-    valores_originais = scaler.inverse_transform(classificacao["valores_escalados"])[0]
+    valores_originais = pacote.scaler.inverse_transform(classificacao["valores_escalados"])[0]
     features_importantes = llm_utils.obter_features_importantes(
-        modelo, feature_names, valores_originais
+        pacote.modelo, pacote.feature_names, valores_originais
     )
     prompt = llm_utils.montar_prompt(
         predicao=classificacao["predicao"],
         chance_doenca=classificacao["chance_doenca"],
         features_importantes=features_importantes,
-        accuracy=METRICAS_MODELO["accuracy"],
-        recall=METRICAS_MODELO["recall"],
-        f1=METRICAS_MODELO["f1"],
-        contexto_ga=llm_utils.formatar_contexto_ga(
-            CONTEXTO_GA["nome_modelo"], CONTEXTO_GA["hiperparametros"]
-        ),
+        accuracy=pacote.metricas["accuracy"],
+        recall=pacote.metricas["recall"],
+        f1=pacote.metricas["f1"],
+        contexto_ga=pacote.contexto_ga,
     )
     try:
         return llm_utils.gerar_explicacao(prompt, api_key=chave)
@@ -183,33 +297,25 @@ def gerar_laudo_individual(classificacao: dict, chave=None) -> str:
         return f"Não foi possível gerar a explicação: {erro}"
 
 
-@app.get("/health")
-def health():
-    return {"status": "ok"}
-
-
-@app.post("/predict", response_model=PredictResponse)
-def predict(payload: PredictRequest):
-    classificacao = classificar_paciente(payload.features)
+def montar_resposta_predict(features: dict, pacote: PacoteModelo) -> PredictResponse:
+    classificacao = classificar_paciente(features, pacote)
     return PredictResponse(
         predicao=classificacao["predicao"],
         resultado=classificacao["resultado"],
         tem_doenca=classificacao["tem_doenca"],
         chance_doenca=classificacao["chance_doenca"],
         probabilidade=classificacao["probabilidade"],
-        explicacao=gerar_laudo_individual(classificacao),
+        explicacao=gerar_laudo_individual(classificacao, pacote),
     )
 
 
-@app.post("/predict/lote", response_model=PredictLoteResponse)
-async def predict_lote(arquivo: UploadFile = File(..., description="CSV no formato do data.csv")):
-    """Importa um CSV e classifica cada linha com o mesmo laudo do /predict."""
+async def montar_resposta_lote(arquivo: UploadFile, pacote: PacoteModelo) -> PredictLoteResponse:
     nome = (arquivo.filename or "").lower()
     if nome and not nome.endswith(".csv"):
         raise HTTPException(status_code=400, detail="Envie um arquivo .csv")
 
     conteudo = (await arquivo.read()).decode("utf-8-sig")
-    pacientes, erros = lote_utils.ler_pacientes_csv(conteudo, feature_names)
+    pacientes, erros = lote_utils.ler_pacientes_csv(conteudo, pacote.feature_names)
     if not pacientes:
         raise HTTPException(
             status_code=422,
@@ -221,7 +327,7 @@ async def predict_lote(arquivo: UploadFile = File(..., description="CSV no forma
     acertos = 0
     comparados = 0
     for paciente in pacientes:
-        classificacao = classificar_paciente(paciente["features"])
+        classificacao = classificar_paciente(paciente["features"], pacote)
         diagnostico_real = paciente["diagnosis"]
         acertou = None
         if diagnostico_real:
@@ -240,7 +346,7 @@ async def predict_lote(arquivo: UploadFile = File(..., description="CSV no forma
                 probabilidade=classificacao["probabilidade"],
                 diagnostico_real=diagnostico_real,
                 acertou=acertou,
-                explicacao=gerar_laudo_individual(classificacao, chave=chave),
+                explicacao=gerar_laudo_individual(classificacao, pacote, chave=chave),
             )
         )
 
@@ -255,6 +361,64 @@ async def predict_lote(arquivo: UploadFile = File(..., description="CSV no forma
         resultados=resultados,
         erros=erros,
     )
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok", "modelo_simplificado": PACOTE_SIMPLIFICADO is not None}
+
+
+@app.post("/predict", response_model=PredictResponse)
+def predict(payload: PredictRequest):
+    return montar_resposta_predict(payload.features, PACOTE_COMPLETO)
+
+
+@app.post("/predict/lote", response_model=PredictLoteResponse)
+async def predict_lote(arquivo: UploadFile = File(..., description="CSV no formato do data.csv")):
+    """Importa um CSV e classifica cada linha com o mesmo laudo do /predict."""
+    return await montar_resposta_lote(arquivo, PACOTE_COMPLETO)
+
+
+@app.get(
+    "/predict/simplificado/features",
+    response_model=FeaturesSimplificadoResponse,
+    summary="Medidas do exame simplificado",
+)
+def listar_features_simplificado():
+    """Lista as 10 medidas do exame simplificado (para montar o formulário)."""
+    pacote = exigir_simplificado()
+    por_nome = {item["feature"]: item["importancia"] for item in (pacote.ranking or [])}
+    return FeaturesSimplificadoResponse(
+        algoritmo=pacote.algoritmo,
+        metodo=pacote.metodo,
+        n=len(pacote.feature_names),
+        metricas_holdout=pacote.metricas,
+        features=[
+            FeatureSimplificado(
+                chave=nome,
+                rotulo=llm_utils.nome_amigavel(nome),
+                importancia=float(por_nome.get(nome, 0.0)),
+            )
+            for nome in pacote.feature_names
+        ],
+    )
+
+
+@app.post("/predict/simplificado", response_model=PredictResponse, summary="Exame simplificado")
+def predict_simplificado(payload: PredictRequestSimplificado):
+    return montar_resposta_predict(payload.features, exigir_simplificado())
+
+
+@app.post(
+    "/predict/lote/simplificado",
+    response_model=PredictLoteResponse,
+    summary="Lote — exame simplificado",
+)
+async def predict_lote_simplificado(
+    arquivo: UploadFile = File(..., description="CSV com as 10 medidas do exame simplificado (ou o data.csv completo)"),
+):
+    """Mesmo CSV do lote completo: só as 10 colunas mais importantes são usadas."""
+    return await montar_resposta_lote(arquivo, exigir_simplificado())
 
 
 # Adaptador para rodar como AWS Lambda (container image) — não interfere no uso local via uvicorn.

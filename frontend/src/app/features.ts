@@ -115,3 +115,22 @@ export function formularioVazio(): Record<string, number | null> {
   }
   return valores;
 }
+
+export function formularioDeChaves(chaves: string[]): Record<string, number | null> {
+  const valores: Record<string, number | null> = {};
+  for (const chave of chaves) {
+    valores[chave] = null;
+  }
+  return valores;
+}
+
+export function recortarExemplo(
+  fonte: Record<string, number>,
+  chaves: string[],
+): Record<string, number> {
+  const valores: Record<string, number> = {};
+  for (const chave of chaves) {
+    valores[chave] = fonte[chave];
+  }
+  return valores;
+}

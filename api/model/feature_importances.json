@@ -1,0 +1,180 @@
+{
+  "algoritmo": "regressao_logistica",
+  "metodo": "abs(coef_)",
+  "n": 10,
+  "hiperparametros": {
+    "C": 0.025631932887737845,
+    "penalty": "l2",
+    "class_weight": "balanced"
+  },
+  "metricas_holdout": {
+    "accuracy": 0.956140350877193,
+    "precision": 0.9512195121951219,
+    "recall": 0.9285714285714286,
+    "f1": 0.9397590361445783
+  },
+  "features": [
+    {
+      "feature": "texture_worst",
+      "importancia": 0.35596495208263496
+    },
+    {
+      "feature": "radius_worst",
+      "importancia": 0.3410627136582241
+    },
+    {
+      "feature": "perimeter_worst",
+      "importancia": 0.3221836285717178
+    },
+    {
+      "feature": "area_worst",
+      "importancia": 0.3064371173113649
+    },
+    {
+      "feature": "concave points_worst",
+      "importancia": 0.3058069591625152
+    },
+    {
+      "feature": "concave points_mean",
+      "importancia": 0.2942698603763542
+    },
+    {
+      "feature": "radius_mean",
+      "importancia": 0.285274630402347
+    },
+    {
+      "feature": "perimeter_mean",
+      "importancia": 0.2799968430704561
+    },
+    {
+      "feature": "texture_mean",
+      "importancia": 0.275199460019488
+    },
+    {
+      "feature": "area_mean",
+      "importancia": 0.26977359207594664
+    }
+  ],
+  "ranking_completo": [
+    {
+      "feature": "texture_worst",
+      "importancia": 0.35596495208263496
+    },
+    {
+      "feature": "radius_worst",
+      "importancia": 0.3410627136582241
+    },
+    {
+      "feature": "perimeter_worst",
+      "importancia": 0.3221836285717178
+    },
+    {
+      "feature": "area_worst",
+      "importancia": 0.3064371173113649
+    },
+    {
+      "feature": "concave points_worst",
+      "importancia": 0.3058069591625152
+    },
+    {
+      "feature": "concave points_mean",
+      "importancia": 0.2942698603763542
+    },
+    {
+      "feature": "radius_mean",
+      "importancia": 0.285274630402347
+    },
+    {
+      "feature": "perimeter_mean",
+      "importancia": 0.2799968430704561
+    },
+    {
+      "feature": "texture_mean",
+      "importancia": 0.275199460019488
+    },
+    {
+      "feature": "area_mean",
+      "importancia": 0.26977359207594664
+    },
+    {
+      "feature": "radius_se",
+      "importancia": 0.26036888817238907
+    },
+    {
+      "feature": "symmetry_worst",
+      "importancia": 0.25522309803156235
+    },
+    {
+      "feature": "concavity_worst",
+      "importancia": 0.22474556667891646
+    },
+    {
+      "feature": "smoothness_worst",
+      "importancia": 0.22282814565172565
+    },
+    {
+      "feature": "area_se",
+      "importancia": 0.21450320897839845
+    },
+    {
+      "feature": "concavity_mean",
+      "importancia": 0.21346129408324213
+    },
+    {
+      "feature": "perimeter_se",
+      "importancia": 0.20995306567642405
+    },
+    {
+      "feature": "fractal_dimension_se",
+      "importancia": 0.13956781160988715
+    },
+    {
+      "feature": "compactness_worst",
+      "importancia": 0.1390535712160423
+    },
+    {
+      "feature": "smoothness_mean",
+      "importancia": 0.1346676122415155
+    },
+    {
+      "feature": "fractal_dimension_mean",
+      "importancia": 0.11887284942138403
+    },
+    {
+      "feature": "compactness_se",
+      "importancia": 0.09849161680861478
+    },
+    {
+      "feature": "concave points_se",
+      "importancia": 0.0909358587887055
+    },
+    {
+      "feature": "compactness_mean",
+      "importancia": 0.09065258101824049
+    },
+    {
+      "feature": "fractal_dimension_worst",
+      "importancia": 0.07475215022628297
+    },
+    {
+      "feature": "symmetry_mean",
+      "importancia": 0.06896553432572093
+    },
+    {
+      "feature": "symmetry_se",
+      "importancia": 0.06266922324861689
+    },
+    {
+      "feature": "concavity_se",
+      "importancia": 0.042810571214550536
+    },
+    {
+      "feature": "texture_se",
+      "importancia": 0.00885557762001992
+    },
+    {
+      "feature": "smoothness_se",
+      "importancia": 0.004034124735447537
+    }
+  ]
+}

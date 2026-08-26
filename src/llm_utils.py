@@ -34,7 +34,7 @@ NOMES_MODELO = {
     "random_forest": "Random Forest",
 }
 
-# System prompt: o "papel" da LLM. Não mistura com os números do paciente.
+# System prompt do laudo de um paciente (usado na API, no front e no notebook).
 SYSTEM_PROMPT = """Você é um profissional de saúde explicando o resultado de uma triagem automática de câncer de mama, como se estivesse conversando com um colega.
 
 Escreva um laudo curto em português (4 a 7 frases), em tom humano — não robótico.
@@ -46,6 +46,19 @@ Regras:
 - Use só os números e fatos que estão na mensagem. Não invente exames, sintomas nem valores.
 - Deixe claro no final que isso é uma triagem automática e não substitui o diagnóstico médico.
 - Não use jargão de machine learning (não fale em modelo, features, hiperparâmetros, algoritmo genético, fitness).
+"""
+
+# Relatório dos experimentos do GA (só o notebook). Tom de equipe, não de laudo individual.
+SYSTEM_PROMPT_RELATORIO = """Você explica para a equipe médica o resultado de um experimento de triagem automática de câncer de mama.
+
+Escreva um relatório curto em português (5 a 8 frases), claro, sem jargão de programação.
+
+Regras:
+- Diga qual abordagem ficou melhor depois da otimização e cite acurácia, recall e F1 exatamente como vieram.
+- Compare com a versão original em linguagem simples (melhorou, ficou igual ou piorou).
+- Cite as medidas do tumor que mais pesaram, usando os nomes amigáveis.
+- Não invente números nem exames. Use só o que está na mensagem.
+- Não faça diagnóstico de um paciente. Isto é um relatório do experimento.
 """
 
 
@@ -171,6 +184,35 @@ def montar_prompt(
         "Escreva o laudo em tom humano, como no exemplo: "
         '"Nossa detecção automática deu 80% de chance de o tumor ser maligno, '
         'principalmente por causa do tamanho do tumor e da irregularidade do contorno."'
+    )
+
+
+def montar_prompt_relatorio(comparacao, melhor_algoritmo, hiperparametros, metricas, features_top):
+    """Prompt do relatório dos experimentos (tabela GA + medidas mais importantes)."""
+    if hasattr(comparacao, "to_dict"):
+        linhas = comparacao.to_dict("records")
+    else:
+        linhas = comparacao
+
+    tabela = "\n".join(
+        f"- {linha['algoritmo']} ({linha['versao']}): "
+        f"acurácia {linha['accuracy']:.1%}, recall {linha['recall']:.1%}, F1 {linha['f1']:.2f}"
+        for linha in linhas
+    )
+    medidas = "\n".join(
+        f"- {item.get('nome', nome_amigavel(item['feature']))}: peso {item['importancia']:.3f}"
+        for item in features_top
+    )
+    nome = NOMES_MODELO.get(melhor_algoritmo, melhor_algoritmo)
+    genes = ", ".join(f"{k}={_formatar_gene(v)}" for k, v in (hiperparametros or {}).items())
+    return (
+        "Resultados do experimento (use só o que está aqui):\n\n"
+        f"Comparação original vs. otimizado:\n{tabela}\n\n"
+        f"Vencedor: {nome}\n"
+        f"Configuração escolhida: {genes or 'não informada'}\n"
+        f"Holdout do vencedor: acurácia {metricas['accuracy']:.1%}, "
+        f"recall {metricas['recall']:.1%}, F1 {metricas['f1']:.2f}.\n\n"
+        f"Medidas do tumor que mais pesaram no vencedor:\n{medidas}\n"
     )
 
 
