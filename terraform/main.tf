@@ -81,20 +81,41 @@ resource "aws_lambda_function" "api" {
   depends_on = [aws_iam_role_policy_attachment.lambda_basic_logs]
 }
 
-# --- Endpoint HTTPS público, sem precisar de API Gateway ---
-resource "aws_lambda_function_url" "api" {
-  function_name      = aws_lambda_function.api.function_name
-  authorization_type = "NONE"
+# --- Endpoint HTTPS público via API Gateway (HTTP API) ---
+# Trocado de Lambda Function URL para API Gateway porque contas AWS novas
+# têm uma restrição de conta que bloqueia invocação anônima (403) em Function
+# URLs com authorization_type = NONE, mesmo com a resource policy correta.
+# O API Gateway não tem essa mesma restrição.
+resource "aws_apigatewayv2_api" "api" {
+  name          = "${var.nome_projeto}-api"
+  protocol_type = "HTTP"
 }
 
-# authorization_type = "NONE" não basta sozinho: a Lambda ainda bloqueia
-# invocação anônima (403) sem essa permissão de recurso explícita.
-resource "aws_lambda_permission" "function_url_public" {
-  statement_id            = "AllowPublicInvokeFunctionUrl"
-  action                  = "lambda:InvokeFunctionUrl"
-  function_name           = aws_lambda_function.api.function_name
-  principal               = "*"
-  function_url_auth_type  = "NONE"
+resource "aws_apigatewayv2_integration" "lambda" {
+  api_id                 = aws_apigatewayv2_api.api.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = aws_lambda_function.api.invoke_arn
+  payload_format_version = "2.0"
+}
+
+resource "aws_apigatewayv2_route" "default" {
+  api_id    = aws_apigatewayv2_api.api.id
+  route_key = "$default"
+  target    = "integrations/${aws_apigatewayv2_integration.lambda.id}"
+}
+
+resource "aws_apigatewayv2_stage" "default" {
+  api_id      = aws_apigatewayv2_api.api.id
+  name        = "$default"
+  auto_deploy = true
+}
+
+resource "aws_lambda_permission" "apigw_invoke" {
+  statement_id  = "AllowAPIGatewayInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.api.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.api.execution_arn}/*/*"
 }
 
 # --- Logs (satisfaz o requisito de monitoramento/logging do enunciado) ---

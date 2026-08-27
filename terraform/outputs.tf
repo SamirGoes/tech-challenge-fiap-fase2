@@ -1,6 +1,6 @@
 output "function_url" {
   description = "URL pública HTTPS da API (endpoints /health e /predict)"
-  value       = aws_lambda_function_url.api.function_url
+  value       = aws_apigatewayv2_stage.default.invoke_url
 }
 
 output "ecr_repository_url" {
