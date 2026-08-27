@@ -5,9 +5,7 @@ import { Api, FeatureSimplificado, PredictLoteResponse, PredictResponse } from '
 import {
   EXEMPLO_BENIGNO,
   EXEMPLO_MALIGNO,
-  GRUPOS,
   formularioDeChaves,
-  formularioVazio,
   recortarExemplo,
 } from './features';
 
@@ -20,19 +18,15 @@ import {
 export class App implements OnInit {
   private readonly api = inject(Api);
 
-  protected readonly grupos = GRUPOS;
   protected readonly camposSimplificado = signal<FeatureSimplificado[]>([]);
   protected readonly algoritmoSimplificado = signal('');
-  protected readonly aba = signal<'individual' | 'simplificado' | 'lote'>('individual');
-  protected readonly valores = signal(formularioVazio());
+  protected readonly aba = signal<'simplificado' | 'lote'>('simplificado');
   protected readonly valoresSimplificado = signal<Record<string, number | null>>({});
-  protected readonly resultado = signal<PredictResponse | null>(null);
   protected readonly resultadoSimplificado = signal<PredictResponse | null>(null);
   protected readonly carregando = signal(false);
   protected readonly erro = signal<string | null>(null);
 
   protected readonly arquivoLote = signal<File | null>(null);
-  protected readonly modeloLote = signal<'completo' | 'simplificado'>('completo');
   protected readonly relatorio = signal<PredictLoteResponse | null>(null);
   protected readonly casoAberto = signal<number | null>(0);
 
@@ -58,29 +52,17 @@ export class App implements OnInit {
     });
   }
 
-  escolherAba(aba: 'individual' | 'simplificado' | 'lote') {
+  escolherAba(aba: 'simplificado' | 'lote') {
     this.aba.set(aba);
     this.erro.set(null);
   }
 
-  atualizarCampo(chave: string, evento: Event, destino: 'completo' | 'simplificado' = 'completo') {
+  atualizarCampo(chave: string, evento: Event) {
     const bruto = (evento.target as HTMLInputElement).value;
-    const atualizar = (atual: Record<string, number | null>) => ({
+    this.valoresSimplificado.update((atual) => ({
       ...atual,
       [chave]: bruto === '' ? null : Number(bruto),
-    });
-    if (destino === 'simplificado') {
-      this.valoresSimplificado.update(atualizar);
-    } else {
-      this.valores.update(atualizar);
-    }
-  }
-
-  preencher(exemplo: 'maligno' | 'benigno') {
-    const fonte = exemplo === 'maligno' ? EXEMPLO_MALIGNO : EXEMPLO_BENIGNO;
-    this.valores.set({ ...fonte });
-    this.resultado.set(null);
-    this.erro.set(null);
+    }));
   }
 
   preencherSimplificado(exemplo: 'maligno' | 'benigno') {
@@ -91,42 +73,11 @@ export class App implements OnInit {
     this.erro.set(null);
   }
 
-  limpar() {
-    this.valores.set(formularioVazio());
-    this.resultado.set(null);
-    this.erro.set(null);
-  }
-
   limparSimplificado() {
     const chaves = this.camposSimplificado().map((campo) => campo.chave);
     this.valoresSimplificado.set(formularioDeChaves(chaves));
     this.resultadoSimplificado.set(null);
     this.erro.set(null);
-  }
-
-  enviarIndividual() {
-    const features: Record<string, number> = {};
-    for (const [chave, valor] of Object.entries(this.valores())) {
-      if (valor === null || Number.isNaN(valor)) {
-        this.erro.set('Preencha todas as 30 medidas do exame (ou use um exemplo).');
-        return;
-      }
-      features[chave] = valor;
-    }
-
-    this.carregando.set(true);
-    this.erro.set(null);
-    this.resultado.set(null);
-    this.api.prever(features).subscribe({
-      next: (resposta) => {
-        this.resultado.set(resposta);
-        this.carregando.set(false);
-      },
-      error: (falha) => {
-        this.erro.set(this.lerErro(falha, 'Não deu para chamar o /predict. A API está rodando?'));
-        this.carregando.set(false);
-      },
-    });
   }
 
   enviarSimplificado() {
@@ -179,28 +130,17 @@ export class App implements OnInit {
     }
   }
 
-  escolherModeloLote(modelo: 'completo' | 'simplificado') {
-    this.modeloLote.set(modelo);
-    this.relatorio.set(null);
-    this.erro.set(null);
-  }
-
   enviarLote() {
     const arquivo = this.arquivoLote();
     if (!arquivo) {
-      this.erro.set('Escolha um CSV (por exemplo data/data-api.csv).');
+      this.erro.set('Escolha um CSV (por exemplo data/data-simplificado.csv).');
       return;
     }
-
-    const pedido =
-      this.modeloLote() === 'simplificado'
-        ? this.api.preverLoteSimplificado(arquivo)
-        : this.api.preverLote(arquivo);
 
     this.carregando.set(true);
     this.erro.set(null);
     this.relatorio.set(null);
-    pedido.subscribe({
+    this.api.preverLoteSimplificado(arquivo).subscribe({
       next: (resposta) => {
         this.relatorio.set(resposta);
         this.casoAberto.set(resposta.resultados[0]?.linha ?? null);

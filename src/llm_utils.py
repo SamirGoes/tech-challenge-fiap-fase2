@@ -41,7 +41,7 @@ Escreva um laudo curto em português (4 a 7 frases), em tom humano — não rob�
 
 Regras:
 - Comece dizendo se o resultado é POSITIVO (indica doença / tumor maligno) ou NEGATIVO (não indica doença / tumor benigno).
-- Informe a porcentagem de chance de o tumor ser maligno, usando exatamente o número que foi passado.
+- Se for POSITIVO, informe a chance de o tumor ser maligno. Se for NEGATIVO, informe a chance de o tumor ser benigno. Use exatamente o número indicado para essa classe — não inverta e não fale da classe oposta.
 - Explique o porquê com as características do tumor (tamanho, textura, formato). Fale como uma pessoa: "nossa detecção automática deu X% principalmente por causa do tamanho do tumor...".
 - Use só os números e fatos que estão na mensagem. Não invente exames, sintomas nem valores.
 - Deixe claro no final que isso é uma triagem automática e não substitui o diagnóstico médico.
@@ -155,12 +155,25 @@ def montar_prompt(
     chance_doenca: probabilidade de o tumor ser maligno (0 a 1)
     """
     tem_doenca = predicao.strip().lower().startswith("malign")
+    chance_benigno = 1.0 - chance_doenca
     if tem_doenca:
         resultado = "POSITIVO"
         situacao = "indica doença — tumor classificado como MALIGNO"
+        chance_laudo = chance_doenca
+        classe_laudo = "maligno"
+        exemplo = (
+            '"Nossa detecção automática deu 80% de chance de o tumor ser maligno, '
+            'principalmente por causa do tamanho do tumor e da irregularidade do contorno."'
+        )
     else:
         resultado = "NEGATIVO"
         situacao = "não indica doença — tumor classificado como BENIGNO"
+        chance_laudo = chance_benigno
+        classe_laudo = "benigno"
+        exemplo = (
+            '"Nossa detecção automática deu 80% de chance de o tumor ser benigno, '
+            'principalmente por causa do tamanho menor do tumor e do contorno mais regular."'
+        )
 
     features_txt = "\n".join(
         f"- {f.get('nome', nome_amigavel(f['feature']))}: {f['valor']:.3f} "
@@ -173,17 +186,16 @@ def montar_prompt(
     return (
         "Dados deste paciente (use só o que está aqui, não invente):\n\n"
         f"- Resultado da triagem automática: {resultado} ({situacao})\n"
-        f"- Chance estimada de o tumor ser maligno (ter a doença): {chance_doenca:.0%}\n"
-        f"- Chance estimada de o tumor ser benigno: {1 - chance_doenca:.0%}\n\n"
+        f"- Chance que deve aparecer no laudo: {chance_laudo:.0%} de o tumor ser {classe_laudo}\n\n"
         "Características que mais pesaram nesta conclusão "
         "(explicabilidade do modelo):\n"
         f"{features_txt}\n\n"
         f"{bloco_ga}\n"
         f"Desempenho desse modelo nos testes: acurácia {accuracy:.1%}, "
         f"recall {recall:.1%}, F1 {f1:.2f}.\n\n"
-        "Escreva o laudo em tom humano, como no exemplo: "
-        '"Nossa detecção automática deu 80% de chance de o tumor ser maligno, '
-        'principalmente por causa do tamanho do tumor e da irregularidade do contorno."'
+        f"No texto, use {chance_laudo:.0%} de chance de o tumor ser {classe_laudo} "
+        "(não inverta e não destaque a classe oposta).\n"
+        f"Escreva o laudo em tom humano, como no exemplo: {exemplo}"
     )
 
 
