@@ -9,7 +9,7 @@ Este repositório dá continuidade ao trabalho da [Fase 1](https://github.com/Ra
 1. **Otimiza os hiperparâmetros dos 3 modelos da Fase 1** usando um Algoritmo Genético implementado do zero (`src/ga_utils.py`).
 2. **Roda 3 experimentos** com configurações diferentes do GA (população/mutação/gerações), um por algoritmo.
 3. **Compara** cada modelo original com sua versão otimizada, no mesmo holdout de teste.
-4. **Integra a API da Anthropic (Claude)** para traduzir predições individuais em explicações de linguagem natural voltadas a profissionais de saúde (`src/llm_utils.py`).
+4. **Integra a API da Anthropic (Claude)** para gerar um laudo em linguagem natural (NLP): resultado positivo/negativo, chance de ter a doença e uma explicação humana das características que mais pesaram (`src/llm_utils.py`).
 
 ## Estrutura
 
@@ -27,12 +27,15 @@ tech-challenge-fiap-fase2/
 ├── docs/
 │   ├── ARCHITECTURE.md                    # Diagramas de arquitetura (Mermaid), incluindo a nuvem
 │   ├── GUIA_CONCEITOS.md                  # Glossário/FAQ dos conceitos de GA e prompt engineering
-│   └── GA_EXPLICADO.md                    # Leitura linha a linha do código do GA, com exemplos
+│   ├── GA_EXPLICADO.md                    # Leitura linha a linha do código do GA, com exemplos
+│   └── EXPLICACAO_GRUPO.md                # Texto simples para apresentar o projeto ao grupo
+├── frontend/                              # Interface Angular 22 (form /predict + relatório /predict/lote)
 ├── api/                                   # [opcional] API do modelo otimizado (FastAPI + Lambda)
 │   ├── main.py
 │   └── model/                             # modelo/scaler treinados, gerados por scripts/treinar_modelo_final.py
 ├── scripts/
-│   └── treinar_modelo_final.py            # [opcional] treina e persiste o melhor modelo do GA
+│   ├── treinar_modelo_final.py            # [opcional] treina e persiste o melhor modelo do GA
+│   └── treinar_modelo_simplificado.py     # [opcional] reexporta feature_importances.json sem reabrir o notebook
 ├── terraform/                             # [opcional] infraestrutura como código (AWS)
 ├── Dockerfile                             # [opcional] imagem da API para deploy em nuvem
 ├── RELATORIO_TECNICO.md                   # Relatório técnico da Fase 2
@@ -44,9 +47,8 @@ tech-challenge-fiap-fase2/
 ```bash
 python -m pip install -r requirements.txt
 
-# Necessário só para a seção de LLM do notebook — sem isso, os 3 experimentos
-# do GA rodam normalmente, só não chama a API de verdade.
-export ANTHROPIC_API_KEY="sua-chave-aqui"
+# Para a seção de LLM: preencha a chave no arquivo .env (veja .env.example).
+# Sem o .env, o GA roda normalmente — só não chama o Claude.
 
 jupyter notebook notebooks/03_ga_llm_breast_cancer.ipynb
 ```
@@ -79,11 +81,19 @@ O melhor modelo otimizado (Regressão Logística) é exposto como uma API (FastA
 ```bash
 # 1. Treinar e persistir o modelo (gera api/model/*.joblib)
 python scripts/treinar_modelo_final.py
+# O exame simplificado sai do notebook (seção Feature importances).
+# Sem reabrir o Jupyter, dá para reexportar com:
+python scripts/treinar_modelo_simplificado.py
 
-# 2. Testar a API localmente, sem AWS
-export ANTHROPIC_API_KEY="sua-chave-aqui"
-uvicorn api.main:app --reload
-curl -X POST localhost:8000/predict -H "Content-Type: application/json" -d '{"features": {...}}'
+# 2. Testar a API localmente, sem AWS (a chave sai do .env)
+python -m uvicorn api.main:app --reload
+
+# 3. Interface gráfica (outro terminal) — precisa da API no ar
+cd frontend
+npm start
+# Abre http://localhost:4200
+# Exame completo chama /predict. A aba "Exame simplificado" lê GET /predict/simplificado/features
+# (lista vem do JSON exportado pelo notebook) e envia POST /predict/simplificado.
 ```
 
 ## Entregáveis

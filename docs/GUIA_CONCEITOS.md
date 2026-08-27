@@ -49,11 +49,11 @@ Para uma leitura linha a linha do código do GA (o que cada gene pode valer, exe
 
 **O que é, em uma frase?** A prática de estruturar deliberadamente a entrada de uma LLM (em vez de perguntar de forma solta) para obter respostas mais consistentes, corretas e no formato que você precisa.
 
-**Técnicas usadas em `src/llm_utils.py` (função `montar_prompt`):**
-- **Definição de papel** ("você é um assistente que ajuda profissionais de saúde...") — ancora o tom e o vocabulário.
-- **Contexto de limites explícito** ("NÃO substitui diagnóstico médico") — evita que a LLM soe mais confiante do que deveria, importante em contexto clínico.
-- **Dados estruturados como fatos, não como pergunta aberta** — em vez de "o que você acha desse caso?", passamos predição, confiança e as features mais influentes já calculadas pelo modelo. Isso ancora a resposta da LLM em números reais, reduzindo o risco de "alucinação".
-- **Formato de saída especificado** (3-5 frases, sem jargão de ML) — torna as respostas comparáveis entre si e garante que caibam num fluxo clínico real (ninguém lê um parágrafo longo entre pacientes).
+**Técnicas usadas em `src/llm_utils.py`:**
+- **System prompt separado da mensagem** (`SYSTEM_PROMPT`) — a LLM assume o papel de alguém explicando o exame em voz alta; o aviso de que **não substitui diagnóstico médico** fica aqui, não misturado com os números.
+- **User prompt só com fatos** (`montar_prompt`) — resultado POSITIVO/NEGATIVO (tem / não tem a doença), porcentagem de chance de o tumor ser maligno, top features da explicabilidade e o texto do GA. Não perguntamos "o que você acha?".
+- **Exemplo de tom** ("Nossa detecção automática deu 80% por causa do tamanho do tumor...") — ancora o estilo da resposta, para sair um laudo humano e não um relatório técnico.
+- **Nomes amigáveis das features** (`nome_amigavel`) — `area_worst` vira "área (tamanho do tumor)", para a LLM falar de tamanho/textura/formato em vez do nome cru da coluna.
 
 ## Como interpretar as curvas de convergência dos 3 experimentos
 

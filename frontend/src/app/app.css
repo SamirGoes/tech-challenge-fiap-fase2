@@ -1,0 +1,371 @@
+.app {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 2.2rem 1.2rem 4rem;
+}
+
+.topo h1,
+.relatorio-topo h2,
+.laudo h2 {
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 560;
+  letter-spacing: -0.03em;
+  margin: 0.2rem 0 0.4rem;
+}
+
+.selo {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.72rem;
+  color: var(--teal);
+}
+
+.subtitulo,
+.grupo-desc,
+.dica,
+.espera,
+.rodape-laudo {
+  color: #51615a;
+}
+
+.abas,
+.acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 1.4rem 0 1rem;
+}
+
+.abas button,
+.fantasma,
+.arquivo,
+.principal {
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.abas button,
+.fantasma,
+.arquivo {
+  background: #fff;
+  border: 1px solid var(--linha);
+  padding: 0.55rem 1rem;
+}
+
+.abas button.ativa,
+.principal {
+  background: var(--teal);
+  color: #f7fffb;
+  border-color: var(--teal);
+}
+
+.principal {
+  padding: 0.85rem 1.4rem;
+  font-weight: 650;
+  margin-top: 1rem;
+}
+
+.principal:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.alerta {
+  background: #f8e4e1;
+  color: #6d221d;
+  padding: 0.8rem 1rem;
+  border-radius: 12px;
+}
+
+.painel,
+.laudo,
+.relatorio,
+.caso {
+  background: var(--card);
+  border: 1px solid var(--linha);
+  border-radius: 22px;
+  box-shadow: 0 16px 40px rgba(29, 42, 36, 0.06);
+}
+
+.painel,
+.laudo,
+.relatorio {
+  padding: 1.3rem;
+  margin-bottom: 1.2rem;
+}
+
+.grupos {
+  display: grid;
+  gap: 1rem;
+}
+
+.grupo {
+  border: 1px solid var(--linha);
+  border-radius: 16px;
+  padding: 0.8rem 1rem 1rem;
+}
+
+.grupo legend {
+  font-weight: 700;
+  padding: 0 0.4rem;
+}
+
+.grupo-desc {
+  margin: 0 0 0.8rem;
+  font-size: 0.92rem;
+}
+
+.grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.7rem;
+}
+
+.grade-simplificado {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.65rem 0.7rem;
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  justify-content: flex-end;
+}
+
+.campo-rotulo {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.28rem;
+  min-height: 2.5rem;
+  margin-bottom: 0.2rem;
+  line-height: 1.2;
+}
+
+.campo-rotulo span {
+  display: block;
+  margin: 0;
+  font-size: 0.68rem;
+}
+
+.grade-simplificado .rank {
+  min-width: 1.1rem;
+  height: 1.1rem;
+  margin-right: 0;
+  font-size: 0.62rem;
+  flex-shrink: 0;
+}
+
+.grade-simplificado input[type='number'] {
+  padding: 0.38rem 0.45rem;
+  font-size: 0.88rem;
+}
+
+label span {
+  display: block;
+  font-size: 0.78rem;
+  margin-bottom: 0.25rem;
+  color: #3e524b;
+}
+
+.rank {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.35rem;
+  height: 1.35rem;
+  margin-right: 0.28rem;
+  border-radius: 99px;
+  background: #e4efe8;
+  color: var(--teal);
+  font-style: normal;
+  font-weight: 700;
+  font-size: 0.72rem;
+}
+
+.acoes button.ativa {
+  background: var(--teal);
+  color: #f7fffb;
+  border-color: var(--teal);
+}
+
+input[type='number'] {
+  width: 100%;
+  border: 1px solid var(--linha);
+  border-radius: 10px;
+  padding: 0.5rem 0.6rem;
+  background: #fffcf6;
+}
+
+.laudo.positivo,
+.caso.positivo {
+  border-color: #e4b4b0;
+}
+
+.laudo.negativo,
+.caso.negativo {
+  border-color: #b7d4c4;
+}
+
+.carimbo {
+  display: inline-block;
+  margin: 0 0 0.4rem;
+  padding: 0.2rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: #efe4d8;
+}
+
+.positivo .carimbo {
+  background: #f3d2ce;
+  color: var(--positivo);
+}
+
+.negativo .carimbo {
+  background: #d5ecdf;
+  color: var(--negativo);
+}
+
+.carimbo.pequeno {
+  margin: 0;
+}
+
+.chance,
+.caso-chance {
+  font-weight: 700;
+}
+
+.barra {
+  height: 8px;
+  background: #efe7d8;
+  border-radius: 99px;
+  overflow: hidden;
+  margin: 0.7rem 0 1rem;
+}
+
+.barra span {
+  display: block;
+  height: 100%;
+  background: var(--teal);
+}
+
+.positivo .barra span {
+  background: var(--positivo);
+}
+
+.negativo .barra span {
+  background: var(--negativo);
+}
+
+.texto-laudo {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 1.08rem;
+  line-height: 1.65;
+}
+
+.rodape-laudo,
+.espera {
+  font-size: 0.86rem;
+}
+
+.soltar {
+  border: 1.5px dashed #b9cfc6;
+  border-radius: 18px;
+  padding: 1.6rem;
+  text-align: center;
+  background: #f8fbf8;
+}
+
+.arquivo {
+  display: inline-block;
+  margin-top: 0.6rem;
+}
+
+.arquivo input {
+  display: none;
+}
+
+.arquivo-nome {
+  margin: 0.7rem 0 0;
+  font-weight: 650;
+}
+
+.relatorio-topo {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.numeros {
+  display: flex;
+  gap: 1.2rem;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.numeros strong {
+  display: block;
+  font-family: 'Fraunces', serif;
+  font-size: 1.8rem;
+}
+
+.casos {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.caso {
+  padding: 0;
+  overflow: hidden;
+}
+
+.caso-cabeca {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  background: transparent;
+  border: 0;
+  padding: 0.85rem 1rem;
+  cursor: pointer;
+  text-align: left;
+}
+
+.caso-id {
+  font-weight: 700;
+  flex: 1;
+}
+
+.tag {
+  font-size: 0.75rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 99px;
+  background: #f3d2ce;
+  color: var(--positivo);
+}
+
+.tag.ok {
+  background: #d5ecdf;
+  color: var(--negativo);
+}
+
+.caso-corpo {
+  padding: 0 1rem 1rem;
+}
+
+@media (max-width: 700px) {
+  .caso-cabeca {
+    flex-wrap: wrap;
+  }
+
+  .grade-simplificado {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
