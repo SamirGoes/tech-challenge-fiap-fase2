@@ -1,6 +1,6 @@
-# Deploy da API na AWS (Lambda + API Gateway)
+# Deploy da API + Frontend na AWS
 
-Pré-requisitos: conta AWS configurada localmente (`aws configure`), Terraform >= 1.5, Docker rodando.
+Pré-requisitos: conta AWS configurada localmente (`aws configure`), Terraform >= 1.5, Docker rodando, Node.js/npm (pra buildar o frontend Angular).
 
 ## Arquitetura
 
@@ -9,6 +9,18 @@ Pré-requisitos: conta AWS configurada localmente (`aws configure`), Terraform >
 - **API Gateway (HTTP API)**: expõe a Lambda publicamente via HTTPS, com uma rota `$default` (proxy total) apontando pra Lambda.
 - **SSM Parameter Store (SecureString)**: guarda a chave da API Anthropic — usado em vez de Secrets Manager porque é gratuito (Secrets Manager cobra ~US$0,40/segredo/mês).
 - **CloudWatch Logs**: logs da Lambda.
+- **S3 (bucket privado)**: guarda o build estático do frontend Angular.
+- **CloudFront**: serve o frontend a partir do S3 e encaminha as rotas `/predict*`, `/health` e `/status` pro API Gateway, tudo no mesmo domínio.
+
+### Por que CloudFront na frente de tudo (front + API no mesmo domínio)
+
+O frontend Angular chama a API com paths relativos (`/predict`, `/health`, etc — ver
+`frontend/src/app/api.ts`), sem domínio fixo. Em vez de hospedar o front num domínio e a API
+noutro (o que exigiria configurar CORS em produção e um `environment.ts` com a URL da API), o
+CloudFront resolve isso com **cache behaviors por path**: a origem padrão serve os arquivos
+estáticos do S3, e comportamentos específicos pra `/predict*`, `/health` e `/status` encaminham
+pro API Gateway. Do ponto de vista do navegador, tudo é same-origin — zero mudança de código no
+front e zero CORS pra configurar.
 
 ### Por que API Gateway em vez de Lambda Function URL
 
@@ -27,8 +39,9 @@ Function URL usaria, então o código da API (`api/main.py`, via Mangum) não pr
 alteração.
 
 **Permissão IAM necessária**: o usuário/role que roda o `terraform apply` precisa de permissão
-`apigateway:*` (ex.: policy gerenciada `AmazonAPIGatewayAdministrator`), além das permissões de
-Lambda, ECR, IAM e SSM já necessárias antes.
+`apigateway:*` (ex.: policy gerenciada `AmazonAPIGatewayAdministrator`), `cloudfront:*`
+(`CloudFrontFullAccess`) e `s3:*` (`AmazonS3FullAccess`), além das permissões de Lambda, ECR, IAM e
+SSM já necessárias antes.
 
 ## 1. Criar o repositório ECR e ler a URL dele
 
@@ -57,20 +70,42 @@ docker push "${REPO_URL}:latest"
 > silenciosamente (ex.: `...ga-api:latest` vira `...ga-apiatest`). Com chaves esse problema não
 > ocorre.
 
-## 3. Provisionar o resto (Lambda, API Gateway, SSM, logs)
+## 3. Provisionar o resto (Lambda, API Gateway, S3, CloudFront, SSM, logs)
 
 ```bash
 cd terraform
 terraform apply -var-file=terraform.tfvars
-terraform output function_url
 ```
 
-## 4. Testar
+A criação da distribuição CloudFront demora de 5 a 15 minutos pra propagar globalmente — o
+`apply` só retorna depois disso.
+
+## 4. Build e upload do frontend
 
 ```bash
-FUNCTION_URL=$(terraform output -raw function_url)
-curl "${FUNCTION_URL}health"
-curl "${FUNCTION_URL}status"
+cd ../frontend
+npm install
+npm run build
+cd ..
+
+BUCKET=$(cd terraform && terraform output -raw frontend_bucket)
+DIST_ID=$(cd terraform && terraform output -raw cloudfront_distribution_id)
+
+aws s3 sync frontend/dist/frontend/browser/ "s3://${BUCKET}/" --delete
+aws cloudfront create-invalidation --distribution-id "$DIST_ID" --paths "/*"
+```
+
+Repita esse passo (sync + invalidation) a cada novo build do front — o Terraform não faz isso
+automaticamente.
+
+## 5. Testar
+
+```bash
+cd terraform
+FRONTEND_URL=$(terraform output -raw frontend_url)
+curl "${FRONTEND_URL}/health"
+curl "${FRONTEND_URL}/status"
+open "$FRONTEND_URL"   # abre o front no navegador (macOS)
 ```
 
 ## Destruir tudo (evitar custo residual)
