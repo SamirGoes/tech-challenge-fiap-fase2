@@ -252,76 +252,76 @@ def selecao_torneio(populacao, fitnesses, k=3):
     return dict(populacao[melhor_idx])
 
 
-# --------------------------------------------------------------------------
-# Execução do GA e exportação do histórico (usado para os experimentos de
-# sensibilidade a população/gerações e para alimentar a visualização em
-# pygame — ver scripts/experimentos_ga_populacao_geracoes.py)
-# --------------------------------------------------------------------------
+# # --------------------------------------------------------------------------
+# # Execução do GA e exportação do histórico (usado para os experimentos de
+# # sensibilidade a população/gerações e para alimentar a visualização em
+# # pygame — ver scripts/experimentos_ga_populacao_geracoes.py)
+# # --------------------------------------------------------------------------
 
 
-def executar_ga(
-    criar_individuo,
-    mutar,
-    fitness_fn,
-    X,
-    y,
-    tamanho_populacao,
-    n_geracoes,
-    taxa_mutacao,
-    elitismo=2,
-    k_torneio=3,
-    seed=None,
-):
-    """Loop genérico de GA: funciona para qualquer um dos 3 algoritmos, já
-    que só chama as funções passadas por parâmetro (criar_individuo/mutar/
-    fitness_fn são as *_rf, *_log ou *_linear de ga_utils).
+# def executar_ga(
+#     criar_individuo,
+#     mutar,
+#     fitness_fn,
+#     X,
+#     y,
+#     tamanho_populacao,
+#     n_geracoes,
+#     taxa_mutacao,
+#     elitismo=2,
+#     k_torneio=3,
+#     seed=None,
+# ):
+#     """Loop genérico de GA: funciona para qualquer um dos 3 algoritmos, já
+#     que só chama as funções passadas por parâmetro (criar_individuo/mutar/
+#     fitness_fn são as *_rf, *_log ou *_linear de ga_utils).
 
-    Devolve o histórico geração a geração — melhor fitness e melhores
-    hiperparâmetros daquela geração — no formato consumido pela visualização
-    em pygame (ver exportar_historico_json).
-    """
-    if seed is not None:
-        random.seed(seed)
+#     Devolve o histórico geração a geração — melhor fitness e melhores
+#     hiperparâmetros daquela geração — no formato consumido pela visualização
+#     em pygame (ver exportar_historico_json).
+#     """
+#     if seed is not None:
+#         random.seed(seed)
 
-    populacao = [criar_individuo() for _ in range(tamanho_populacao)]
-    historico = []
+#     populacao = [criar_individuo() for _ in range(tamanho_populacao)]
+#     historico = []
 
-    for geracao in range(1, n_geracoes + 1):
-        fitnesses = [fitness_fn(ind, X, y) for ind in populacao]
-        ranking = sorted(zip(populacao, fitnesses), key=lambda par: par[1], reverse=True)
-        melhor_individuo, melhor_fitness = ranking[0]
+#     for geracao in range(1, n_geracoes + 1):
+#         fitnesses = [fitness_fn(ind, X, y) for ind in populacao]
+#         ranking = sorted(zip(populacao, fitnesses), key=lambda par: par[1], reverse=True)
+#         melhor_individuo, melhor_fitness = ranking[0]
 
-        historico.append(
-            {
-                "geracao": geracao,
-                "melhor_fitness": melhor_fitness,
-                "melhores_params": dict(melhor_individuo),
-            }
-        )
+#         historico.append(
+#             {
+#                 "geracao": geracao,
+#                 "melhor_fitness": melhor_fitness,
+#                 "melhores_params": dict(melhor_individuo),
+#             }
+#         )
 
-        nova_populacao = [dict(ind) for ind, _ in ranking[:elitismo]]
-        while len(nova_populacao) < tamanho_populacao:
-            pai1 = selecao_torneio(populacao, fitnesses, k=k_torneio)
-            pai2 = selecao_torneio(populacao, fitnesses, k=k_torneio)
-            filho1, filho2 = crossover(pai1, pai2)
-            nova_populacao.append(mutar(filho1, taxa_mutacao))
-            if len(nova_populacao) < tamanho_populacao:
-                nova_populacao.append(mutar(filho2, taxa_mutacao))
+#         nova_populacao = [dict(ind) for ind, _ in ranking[:elitismo]]
+#         while len(nova_populacao) < tamanho_populacao:
+#             pai1 = selecao_torneio(populacao, fitnesses, k=k_torneio)
+#             pai2 = selecao_torneio(populacao, fitnesses, k=k_torneio)
+#             filho1, filho2 = crossover(pai1, pai2)
+#             nova_populacao.append(mutar(filho1, taxa_mutacao))
+#             if len(nova_populacao) < tamanho_populacao:
+#                 nova_populacao.append(mutar(filho2, taxa_mutacao))
 
-        populacao = nova_populacao
+#         populacao = nova_populacao
 
-    return historico
+#     return historico
 
 
-def exportar_historico_json(historico, algoritmo, modelo_base, caminho):
-    """Grava o histórico de gerações no formato consumido pelo pygame:
-    {"algoritmo": ..., "modelo_base": ..., "geracoes": [...]}."""
-    payload = {
-        "algoritmo": algoritmo,
-        "modelo_base": modelo_base,
-        "geracoes": historico,
-    }
-    Path(caminho).parent.mkdir(parents=True, exist_ok=True)
-    with open(caminho, "w", encoding="utf-8") as f:
-        json.dump(payload, f, indent=2, ensure_ascii=False, default=str)
-    return payload
+# def exportar_historico_json(historico, algoritmo, modelo_base, caminho):
+#     """Grava o histórico de gerações no formato consumido pelo pygame:
+#     {"algoritmo": ..., "modelo_base": ..., "geracoes": [...]}."""
+#     payload = {
+#         "algoritmo": algoritmo,
+#         "modelo_base": modelo_base,
+#         "geracoes": historico,
+#     }
+#     Path(caminho).parent.mkdir(parents=True, exist_ok=True)
+#     with open(caminho, "w", encoding="utf-8") as f:
+#         json.dump(payload, f, indent=2, ensure_ascii=False, default=str)
+#     return payload

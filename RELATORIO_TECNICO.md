@@ -22,7 +22,7 @@ Cada indivíduo é um cromossomo — um dicionário `{hiperparâmetro: valor}` �
 | Regressão Logística | `C` (regularização, escala log), `penalty` (L1/L2), `class_weight` |
 | Random Forest | `n_estimators`, `max_depth`, `min_samples_split`, `min_samples_leaf`, `max_features`, `criterion` |
 
-O loop de gerações do GA está escrito diretamente nas células do notebook `03_ga_llm_breast_cancer.ipynb` (um bloco por algoritmo/experimento), chamando as funções de apoio de `ga_utils.py`: `criar_individuo_*`, `mutar_*`, `fitness_*` (específicas de cada algoritmo, porque os hiperparâmetros são diferentes) e `crossover`/`selecao_torneio` (compartilhadas entre os três, porque operam sobre o dict genérico sem precisar saber o que cada gene significa).
+O loop de gerações do GA está escrito diretamente nas células do notebook `GA_HyperparametersOptimization.ipynb` (um bloco por algoritmo/experimento), chamando as funções de apoio de `ga_utils.py`: `criar_individuo_*`, `mutar_*`, `fitness_*` (específicas de cada algoritmo, porque os hiperparâmetros são diferentes) e `crossover`/`selecao_torneio` (compartilhadas entre os três, porque operam sobre o dict genérico sem precisar saber o que cada gene significa).
 
 ### 2.2 Operadores genéticos
 
@@ -37,52 +37,43 @@ O loop de gerações do GA está escrito diretamente nas células do notebook `0
 fitness = 0.5 · recall + 0.3 · F1 + 0.2 · accuracy
 ```
 
-Calculada via `StratifiedKFold` (5 dobras) sobre o conjunto de treino. O recall pesa mais porque, em diagnóstico de câncer, um falso negativo (maligno classificado como benigno) é clinicamente mais grave que um falso positivo.
+O modelo é treinado no conjunto de treino (`X_train`/`y_train`) e recall/F1/accuracy são calculados diretamente sobre o **holdout de teste** (`X_test`/`y_test`) — é o que `do_GA` (definida no notebook) e as funções `fitness_*` de `ga_utils.py` fazem a cada avaliação de indivíduo. O recall pesa mais porque, em diagnóstico de câncer, um falso negativo (maligno classificado como benigno) é clinicamente mais grave que um falso positivo.
 
-### 2.4 Os 3 experimentos (configurações diferentes)
+**Limitação conhecida**: isso significa que o GA busca hiperparâmetros usando o mesmo conjunto que depois reportamos como resultado final (seção 3) — não há separação entre busca e avaliação, como haveria com validação cruzada no treino. Com um holdout pequeno (114 amostras), o número de combinações accuracy/recall/F1 alcançáveis é limitado, então o fitness tende a saturar rápido em um teto (ver seção 2.4) e as métricas finais tendem a ser um pouco otimistas em relação ao que se esperaria em dados totalmente novos. Ver também seção 4.
 
-Um experimento por algoritmo, cada um com uma configuração diferente do GA:
+### 2.4 Os 3 experimentos, cada um testando várias configurações do GA
 
-| Experimento | Algoritmo | População | Mutação | Gerações |
-|---|---|---|---|---|
-| 1 | Regressão Linear | 10 | 10% | 10 |
-| 2 | Regressão Logística | 20 | 30% | 10 |
-| 3 | Random Forest | 15 | 20% | 20 |
+Um experimento por algoritmo (Regressão Linear, Regressão Logística, Random Forest). Em vez de rodar uma única configuração de GA por experimento, os 3 experimentos seguem o **mesmo padrão**: cada um testa 4 combinações diferentes de população/gerações/mutação de uma só vez, numa lista de configs no notebook (`CONFIGS_1`, `CONFIGS_2`, `CONFIGS_3`, uma por experimento).
 
-Hiperparâmetros encontrados pelo GA em cada experimento (execução registrada em `notebooks/03_ga_llm_breast_cancer.ipynb`, dados brutos em `experiments/results/`):
+O padrão, idêntico nos 3 experimentos:
+- Cada config da lista roda o GA do zero (mesma seed 42), gerando seu próprio histórico geração-a-geração e seu próprio melhor indivíduo.
+- O histórico de **todas** as configs do experimento é concatenado em um único CSV (`experiments/results/fitness_history_<algoritmo>.csv`), com colunas `experimento`/`pop`/`geracoes`/`mutacao` identificando de qual config veio cada linha.
+- O JSON (`experiments/results/best_hyperparams_<algoritmo>.json`) guarda só o indivíduo de **maior fitness entre todas as 4 configs** — não um JSON por config.
+- Um gráfico de convergência (melhor fitness + fitness média por geração) é plotado por config, logo após o treino.
+- Uma célula seguinte reconstrói o modelo otimizado de cada config e monta uma tabela comparando o desempenho de cada uma no holdout de teste, ao lado do baseline original (`experiments/results/comparison_table_<algoritmo>.csv`).
 
-| Experimento | Melhores hiperparâmetros | Fitness (CV, treino) |
+Configs testadas em cada experimento:
+
+| Experimento | Algoritmo | Configs testadas (população / gerações / mutação) |
 |---|---|---|
-| 1 — Regressão Linear | `fit_intercept=True`, `positive=True`, `threshold≈0.337` | 0.9668 |
-| 2 — Regressão Logística | `C≈0.0256`, `penalty=l2`, `class_weight=balanced` | 0.9648 |
-| 3 — Random Forest | `n_estimators=147`, `max_depth=None`, `min_samples_split=2`, `min_samples_leaf=2`, `max_features=sqrt`, `criterion=entropy` | 0.9635 |
+| 1 | Regressão Linear | 10/15/10% · 30/15/10% · 10/15/40% · 25/30/20% |
+| 2 | Regressão Logística | 20/15/10% · 40/15/10% · 20/15/40% · 30/30/20% |
+| 3 | Random Forest | 20/20/10% · 40/20/10% · 20/20/40% · 30/35/20% |
 
-A curva de convergência de cada experimento (melhor/média fitness por geração) está registrada nos gráficos do notebook 03 e nos arquivos `experiments/results/fitness_history_<algoritmo>.csv`.
+Melhor indivíduo entre as 4 configs de cada experimento (execução registrada em `notebooks/GA_HyperparametersOptimization.ipynb`, dados brutos em `experiments/results/`):
 
-### 2.5 Testes de sensibilidade a população/gerações
-
-Os 3 experimentos da seção 2.4 já satisfazem o requisito, mas cada um varia população, mutação e gerações ao mesmo tempo — não isola o efeito de cada parâmetro. Esta seção roda os **3 algoritmos**, cada um com **3 configurações**, variando só **tamanho da população** e **número de gerações** (mutação fixa em 20%):
-
-| Config | População | Gerações | Avaliações de fitness | O que isola |
-|---|---|---|---|---|
-| `pop_baixa_ger_baixa` | 10 | 10 | 100 | baseline |
-| `pop_alta_ger_baixa` | 30 | 10 | 300 | efeito de só aumentar a população |
-| `pop_baixa_ger_alta` | 10 | 30 | 300 | efeito de só aumentar as gerações |
-
-Implementado em `ga_utils.executar_ga` — uma versão genérica do mesmo loop de GA (reaproveita `criar_individuo_*`/`mutar_*`/`fitness_*`/`crossover`/`selecao_torneio` já existentes) — e registrado na seção "Testes de sensibilidade a população/gerações" do notebook `03_ga_llm_breast_cancer.ipynb`. Cada uma das 9 combinações (algoritmo × config) também é exportada via `ga_utils.exportar_historico_json` como um JSON em `experiments/results/ga_history_<algoritmo>_<config>.json` — histórico geração a geração (melhor fitness + melhores hiperparâmetros daquela geração), no formato consumido pela visualização em **pygame**.
-
-Melhor fitness final (CV, treino) por algoritmo e configuração:
-
-| Algoritmo | baseline (100 aval.) | população alta (300 aval.) | gerações altas (300 aval.) |
+| Experimento | Config vencedora (pop/ger/mut) | Melhores hiperparâmetros | Fitness |
 |---|---|---|---|
-| Regressão Linear | 0.9668 | 0.9668 | 0.9668 |
-| Regressão Logística | 0.9691 | 0.9734 | 0.9734 |
-| Random Forest | 0.9622 | 0.9635 | 0.9635 |
+| 1 — Regressão Linear | 10 / 15 / 10% | `fit_intercept=True`, `positive=True`, `threshold≈0.377` | 0.9774 |
+| 2 — Regressão Logística | 40 / 15 / 10% | `C≈0.0367`, `penalty=l1`, `class_weight=balanced` | 0.9947 |
+| 3 — Random Forest | 20 / 20 / 10% | `n_estimators=200`, `max_depth=5`, `min_samples_split=2`, `min_samples_leaf=3`, `max_features=None`, `criterion=entropy` | 0.9479 |
 
-**Leitura dos resultados:**
-- **Regressão Linear**: fitness idêntico nas 3 configurações — o espaço de busca é pequeno (2 genes booleanos + 1 contínuo) e o GA já converge com população/gerações mínimas; dar mais orçamento de busca não ajuda porque não há mais o que explorar.
-- **Regressão Logística e Random Forest**: aumentar só a população *ou* só as gerações — mantendo o mesmo total de avaliações de fitness (300 nos dois casos) — produz o **mesmo ganho** sobre o baseline. Nesse experimento, população e gerações se mostraram intercambiáveis como orçamento de busca, sem uma estratégia claramente superior à outra.
-- **Achado prático**: o que parece determinar o resultado é o número total de avaliações de fitness (população × gerações), não como esse orçamento é dividido entre as duas dimensões — pelo menos nas faixas de valores testadas (10–30 população, 10–30 gerações) e nesses 3 espaços de busca.
+**Leitura dos resultados — por que rodar 4 configs em vez de 1 por experimento:**
+- **Regressão Linear**: as 4 configs convergem para o mesmo fitness (0.9774) e para hiperparâmetros equivalentes — o espaço de busca (3 genes: 2 booleanos + 1 contínuo) é pequeno demais para que população/gerações/mutação façam diferença; qualquer uma das 4 configs já encontra o teto sozinha.
+- **Regressão Logística**: as 4 configs melhoram o baseline, mas variam entre si (fitness entre 0.976 e 0.995) — aqui população/mutação maiores (config vencedora: pop=40, mutação=10%) de fato ajudam a explorar melhor o espaço de `C`/`penalty`/`class_weight`.
+- **Random Forest**: as 4 configs empatam entre si **e com o próprio baseline** (fitness 0.9479 em todas, já na geração 0) — nenhuma das configurações de GA testadas encontrou nada melhor que os hiperparâmetros padrão do sklearn. Ver discussão na seção 4.
+
+Rodar várias configs por experimento (em vez de uma só) deixa mais claro, para cada algoritmo, se o resultado do GA é sensível à configuração de busca (Regressão Logística) ou se já bate num teto estrutural do modelo/dataset independente da configuração (Regressão Linear e Random Forest).
 
 ## 3. Comparativo de desempenho: original vs. otimizado
 
@@ -91,26 +82,26 @@ Tabela gerada por `experiments/results/comparison_table.csv`, holdout de teste (
 | Modelo | Versão | Accuracy | Precision | Recall | F1 |
 |---|---|---|---|---|---|
 | Regressão Linear | Original (limiar 0,5) | 0.9649 | 1.0000 | 0.9048 | 0.9500 |
-| Regressão Linear | **Otimizado (GA)** | 0.9649 | 0.9318 | **0.9762** | 0.9535 |
+| Regressão Linear | **Otimizado (GA)** | 0.9825 | 0.9762 | **0.9762** | 0.9762 |
 | Regressão Logística | Original¹ | 0.9737 | 0.9756 | 0.9524 | 0.9639 |
-| Regressão Logística | **Otimizado (GA)** | **0.9912** | **1.0000** | **0.9762** | **0.9880** |
+| Regressão Logística | **Otimizado (GA)** | **0.9912** | 0.9767 | **1.0000** | **0.9882** |
 | Random Forest | Original | 0.9737 | 1.0000 | 0.9286 | 0.9630 |
-| Random Forest | Otimizado (GA) | 0.9649 | 1.0000 | 0.9048 | 0.9500 |
+| Random Forest | Otimizado (GA) | 0.9737 | 1.0000 | 0.9286 | 0.9630 |
 
 ¹ *A Regressão Logística original recalculada aqui usa `solver='liblinear'` (necessário para o GA poder explorar tanto `penalty='l1'` quanto `'l2'`), diferente do `solver` padrão (`lbfgs`) usado no notebook 01 — por isso os números do baseline não batem exatamente com a tabela da Fase 1 (0.9649/0.9750/0.9286/0.9512). Ambos são o "mesmo modelo" com hiperparâmetros de otimização padrão, apenas com um solver numérico diferente.*
 
-**Leitura dos resultados:**
-- **Regressão Linear**: o GA trocou o limiar de 0,5 para ~0,34, sacrificando um pouco de precisão para aumentar bastante o recall (90,5% → 97,6%) — coerente com a fitness priorizar recall. Ganho real e explicável.
-- **Regressão Logística**: melhora em todas as métricas simultaneamente (accuracy 97,4%→99,1%, recall 95,2%→97,6%, F1 0,964→0,988) — o melhor resultado entre os 3 experimentos, e por isso foi o modelo escolhido para a demonstração de interpretação com LLM no notebook.
-- **Random Forest**: **o GA não superou o baseline neste holdout específico** — o indivíduo com melhor fitness na validação cruzada (147 árvores, `entropy`) teve accuracy/recall/F1 piores que o Random Forest original (100 árvores, parâmetros padrão) quando avaliado no conjunto de teste. Ver discussão na seção 4.
+**Leitura dos resultados** (cada linha "Otimizado (GA)" usa a melhor config entre as 4 testadas no experimento correspondente — seção 2.4):
+- **Regressão Linear**: o GA moveu o limiar de 0,5 para ~0,377, trocando um pouco de precisão por bastante recall (90,5% → 97,6%) e ainda melhorando a accuracy (96,5%→98,2%) — ganho real e explicável, coerente com a fitness priorizar recall.
+- **Regressão Logística**: melhora em quase todas as métricas simultaneamente (accuracy 97,4%→99,1%, recall 95,2%→100%, F1 0,964→0,988) — o melhor resultado entre os 3 experimentos, e por isso foi o modelo escolhido para a demonstração de interpretação com LLM no notebook.
+- **Random Forest**: **empate exato com o baseline** em todas as 4 configs testadas — a melhor configuração encontrada pelo GA (200 árvores, profundidade 5, `entropy`) produz a mesma accuracy/precision/recall/F1 que o Random Forest original (100 árvores, parâmetros padrão) no holdout de teste. Ver discussão na seção 4.
 
 ## 4. Desafios enfrentados e soluções
 
 - **`LinearRegression` não tem hiperparâmetro de regularização**: diferente de Random Forest e Regressão Logística, o sklearn `LinearRegression` não expõe nada como `alpha`/`C` para o GA otimizar de forma significativa. Solução: adicionar o **limiar de classificação** (`threshold`, usado para converter a predição contínua em classe 0/1, fixo em 0,5 no notebook 01) como gene — é o parâmetro com maior impacto real no trade-off recall/precisão desse modelo.
 - **3 algoritmos, 3 espaços de hiperparâmetros diferentes**: em vez de forçar uma abstração única para os três, cada algoritmo tem sua própria `criar_individuo_*`/`mutar_*`/`fitness_*` em `ga_utils.py` — só `crossover` e `selecao_torneio` são compartilhados, porque não dependem do significado de cada gene. Isso deixa o código um pouco repetitivo entre os três, mas cada bloco fica legível sozinho, sem indireção.
-- **Dataset pequeno (569 amostras)**: risco de overfitting da busca do GA a um único split treino/validação. Solução: fitness calculado via validação cruzada estratificada (5-fold), não um único holdout.
+- **Dataset pequeno (569 amostras, holdout de 114)**: risco de o GA "decorar" as particularidades de um único split treino/teste, já que — como descrito na seção 2.3 — o fitness é calculado diretamente sobre o holdout de teste, não por validação cruzada no treino. Isso não foi corrigido nesta entrega (ver seção 2.3), mas está documentado como limitação conhecida: as métricas finais da seção 3 tendem a ser levemente otimistas, e o teto de fitness observado em alguns experimentos (Regressão Linear, Random Forest — seção 2.4) é parcialmente um efeito de o holdout ser pequeno e discreto, não só do espaço de genes ser pequeno.
 - **Compatibilidade futura do scikit-learn**: a versão instalada (1.8) já emite aviso de depreciação para o parâmetro `penalty` da Regressão Logística (removido na 1.10). `requirements.txt` foi fixado em `scikit-learn>=1.3,<1.10` para evitar quebra futura sem precisar redesenhar o espaço de genes agora.
-- **GA otimizando para a validação cruzada, não para o holdout final**: no experimento do Random Forest, o indivíduo com melhor fitness em validação cruzada (5-fold, treino) teve desempenho **pior** que o baseline original quando avaliado no holdout de teste (accuracy 96,5% vs. 97,4%, recall 90,5% vs. 92,9% — ver seção 3). É um lembrete real de que a fitness do GA é uma *estimativa* de generalização, não uma garantia — com um dataset pequeno (569 amostras, holdout de apenas 114), a variância entre CV e holdout pode ser grande o suficiente para inverter o ranking entre configurações próximas. Não "corrigimos" esse resultado artificialmente: reportamos como está, porque é um achado legítimo do experimento (o inverso ocorreu na Regressão Linear e na Regressão Logística, que melhoraram de fato).
+- **GA sem espaço real de melhora no Random Forest**: nas 4 configs testadas no Experimento 3 (seção 2.4), o Random Forest nunca superou o baseline — o fitness máximo encontrado (0.9479) já aparece na primeira geração, em todas as configs, e é exatamente igual ao fitness do próprio baseline (100 árvores, parâmetros padrão do sklearn). Random Forest é um modelo de alta capacidade: nesse dataset, quase linearmente separável, várias combinações razoáveis de hiperparâmetros já classificam o holdout de teste (114 amostras) de forma idêntica ao baseline — não há "para onde" o GA melhorar dentro do espaço de genes testado. É um teto real do modelo/dataset, não uma falha da busca; reportamos como está, sem forçar uma melhora artificial (o inverso ocorreu na Regressão Linear e na Regressão Logística, que melhoraram de fato — seção 3).
 
 ## 5. Integração com LLM
 
@@ -118,7 +109,7 @@ Tabela gerada por `experiments/results/comparison_table.csv`, holdout de teste (
 
 Para cada predição individual (caso de teste), montamos um contexto estruturado — classe prevista, confiança, as features mais influentes daquele caso específico (via `feature_importances_` no Random Forest ou `coef_` nos modelos lineares, extraídas por `llm_utils.obter_features_importantes`) e as métricas gerais do modelo — e pedimos à LLM (Claude, `src/llm_utils.py`) uma explicação curta em português, sem jargão de ML, voltada a uma equipe médica.
 
-O notebook seleciona automaticamente o **melhor modelo otimizado entre os 3** (maior recall no holdout, desempate por F1) para gerar as explicações de demonstração — na execução registrada, foi a **Regressão Logística otimizada** (recall 97,6%, F1 0,988, ver seção 3). As features mostradas ao usuário estão na escala padronizada (`StandardScaler`) usada para treinar o modelo, não na unidade de medida original — uma limitação conhecida a melhorar em uma próxima iteração (converter de volta à escala original antes de montar o prompt).
+O notebook seleciona automaticamente o **melhor modelo otimizado entre os 3** (maior recall no holdout, desempate por F1) para gerar as explicações de demonstração — na execução registrada, foi a **Regressão Logística otimizada** (recall 100%, F1 0,988, ver seção 3). As features mostradas ao usuário estão na escala padronizada (`StandardScaler`) usada para treinar o modelo, não na unidade de medida original — uma limitação conhecida a melhorar em uma próxima iteração (converter de volta à escala original antes de montar o prompt).
 
 ### 5.2 Prompt engineering
 
@@ -132,7 +123,7 @@ Ver `docs/GUIA_CONCEITOS.md` para o detalhamento de cada técnica.
 
 ### 5.3 Avaliação da qualidade das interpretações
 
-Não existe métrica automática confiável para "qualidade de uma explicação médica em texto livre". Adotamos uma avaliação qualitativa manual com 3 critérios (nota 1-5): **clareza**, **correção clínica** e **utilidade acionável**, aplicada a um caso de acerto e um caso de erro do melhor modelo otimizado (rubric no notebook 03, seção de avaliação qualitativa).
+Não existe métrica automática confiável para "qualidade de uma explicação médica em texto livre". Adotamos uma avaliação qualitativa manual com 3 critérios (nota 1-5): **clareza**, **correção clínica** e **utilidade acionável**, aplicada a um caso de acerto e um caso de erro do melhor modelo otimizado (rubric no notebook `GA_HyperparametersOptimization.ipynb`, seção de avaliação qualitativa).
 
 Na execução registrada neste repositório, `ANTHROPIC_API_KEY` não estava configurada — o notebook montou e exibiu os dois prompts estruturados (caso de acerto e caso de erro) mas não chamou a API de verdade, apenas confirmando que a integração está pronta e funcional. _Ao rodar com a chave configurada, preencher aqui as notas atribuídas na tabela `avaliacao_qualitativa` do notebook e um breve comentário sobre a qualidade observada._
 

@@ -1,8 +1,13 @@
 {
   "algoritmo": "regressao_linear",
+  "experimento": "Otimizado RL Experimento 1",
+  "pop": 10,
+  "geracoes": 15,
+  "mutacao": 0.1,
   "melhor_individuo": {
     "fit_intercept": true,
     "positive": true,
     "threshold": 0.37725191533108343
-  }
+  },
+  "melhor_fitness": 0.9774436090225562
 }

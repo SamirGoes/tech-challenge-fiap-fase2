@@ -1,5 +1,9 @@
 {
   "algoritmo": "random_forest",
+  "experimento": "Otimizado RF Experimento 1",
+  "pop": 20,
+  "geracoes": 20,
+  "mutacao": 0.1,
   "melhor_individuo": {
     "n_estimators": 200,
     "max_depth": 5,
@@ -7,5 +11,6 @@
     "min_samples_leaf": 3,
     "max_features": null,
     "criterion": "entropy"
-  }
+  },
+  "melhor_fitness": 0.9479114452798664
 }
