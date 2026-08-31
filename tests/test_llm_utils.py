@@ -18,7 +18,7 @@ def test_montar_prompt_contem_informacoes_principais():
     features = [{"feature": "area_worst", "valor": 1850.0, "importancia": 0.18}]
     prompt = llm_utils.montar_prompt(
         predicao="Maligno",
-        probabilidade=0.92,
+        chance_doenca=0.92,
         features_importantes=features,
         accuracy=0.978,
         recall=0.95,
@@ -26,9 +26,9 @@ def test_montar_prompt_contem_informacoes_principais():
     )
     assert "MALIGNO" in prompt
     assert "92%" in prompt
-    assert "area_worst" in prompt
+    assert "área (extremo)" in prompt
     assert "97.8%" in prompt
-    assert "diagnóstico definitivo" in prompt
+    assert "Algoritmo Genético" in prompt
 
 
 def test_gerar_explicacao_chama_api_mockada(monkeypatch):
@@ -49,7 +49,7 @@ def test_gerar_explicacao_chama_api_mockada(monkeypatch):
 
 
 def test_gerar_explicacao_sem_api_key_levanta_erro(monkeypatch):
-    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.setattr(llm_utils, "carregar_chave_do_env", lambda *a, **k: None)
     try:
         llm_utils.gerar_explicacao("prompt de teste", api_key=None)
         assert False, "deveria ter levantado RuntimeError"
