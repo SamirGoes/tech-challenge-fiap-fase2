@@ -1,21 +1,21 @@
 # Arquitetura — Fase 2 (GA + LLM)
 
-Este documento descreve como as peças da Fase 2 se encaixam: o dataset e os 3 modelos de diagnóstico (herdados da Fase 1), o Algoritmo Genético que otimiza os hiperparâmetros de cada um, e a integração com a LLM (Claude) que traduz predições em explicações para profissionais de saúde.
+Este documento descreve como as peças da Fase 2 se encaixam: o dataset e o modelo de diagnóstico (Regressão Logística, herdado da Fase 1), o Algoritmo Genético que otimiza seus hiperparâmetros com 3 configurações de operadores diferentes, e a integração com a LLM (Claude) que traduz predições em explicações para profissionais de saúde.
 
 ## Visão geral
 
 ```mermaid
 flowchart LR
     A[data/data.csv] --> B[ga_utils.carregar_dados]
-    B --> C1[GA — Regressão Linear]
-    B --> C2[GA — Regressão Logística]
-    B --> C3[GA — Random Forest]
+    B --> C1[Experimento 1\nTorneio + mutação fixa]
+    B --> C2[Experimento 2\nTorneio + mutação adaptativa]
+    B --> C3[Experimento 3\nRoleta + mutação adaptativa]
 
     C1 --> D[Melhor indivíduo\nde cada experimento]
     C2 --> D
     C3 --> D
 
-    D --> E[Reavaliação no holdout\nde teste]
+    D --> E[Reavaliação no holdout\nde teste — nunca visto pelo GA]
     E --> F[experiments/results/\ncomparison_table.csv]
 
     E --> G[llm_utils.montar_prompt]
@@ -25,25 +25,25 @@ flowchart LR
 
 ## Fluxo do Algoritmo Genético
 
-O notebook `GA_HyperparametersOptimization.ipynb` roda esse fluxo **5 vezes** — Experimentos 1–3, um por algoritmo, cada um com sua própria população/mutação/nº de gerações, e mais 2 experimentos (4 e 5) que isolam a troca de um operador (seleção por roleta, mutação adaptativa). O loop de gerações é um único "motor" — `ga_utils.rodar_ga(algoritmo, ...)` — que cada célula de experimento chama passando o algoritmo e os parâmetros do GA; internamente ele despacha para as funções de apoio (`criar_individuo_*`, `mutar_*`, `fitness_*`) do algoritmo escolhido.
+O notebook `GA_HyperparametersOptimization.ipynb` roda esse fluxo **3 vezes**, sempre na Regressão Logística, cada vez com uma configuração diferente de operadores: Experimento 1 (seleção por torneio + mutação fixa), Experimento 2 (torneio + mutação adaptativa) e Experimento 3 (roleta + mutação adaptativa). O loop de gerações é um único "motor" — `ga_utils.rodar_ga(algoritmo, ...)` — que cada célula de experimento chama passando o algoritmo e os parâmetros do GA; internamente ele despacha para as funções de apoio (`criar_individuo_*`, `mutar_*`, `fitness_*`) do algoritmo escolhido.
 
 ```mermaid
 flowchart TD
     Start([Início]) --> Init[Gerar população inicial\nN indivíduos aleatórios]
-    Init --> Eval[Avaliar fitness de cada indivíduo\nStratifiedKFold 5-fold\n0.5·recall + 0.3·F1 + 0.2·accuracy]
+    Init --> Eval["Avaliar fitness de cada indivíduo\nStratifiedKFold 5-fold, só no X_train\n0.5·recall + 0.3·F1 + 0.2·accuracy"]
     Eval --> Log[Guardar melhor/média fitness\nda geração]
     Log --> Check{Atingiu o nº\nde gerações?}
     Check -- não --> Elite[Elitismo: preserva\nos 2 melhores]
-    Elite --> Select[Seleção por torneio\nk=3]
+    Elite --> Select[Seleção\ntorneio k=3 ou roleta]
     Select --> Cross[Crossover uniforme\npor gene]
-    Cross --> Mut[Mutação\npor gene]
+    Cross --> Mut[Mutação\npor gene, fixa ou adaptativa]
     Mut --> NextGen[Nova geração]
     NextGen --> Eval
     Check -- sim --> Best[Melhor indivíduo\njá visto]
     Best --> End([Fim])
 ```
 
-O diagrama acima é o padrão usado nos Experimentos 1–3 (seleção por torneio, mutação com taxa fixa). Os Experimentos 4 e 5 rodam o mesmo fluxo trocando, respectivamente, o passo de Seleção (`ga_utils.selecao_roleta`) e o de Mutação (taxa decrescente por geração, via `mutacao_final` em `rodar_ga`).
+O `X_test` (holdout) **não aparece nesse fluxo** — ele só é usado uma vez, depois do GA terminar, para avaliar o indivíduo vencedor (ver `RELATORIO_TECNICO.md`, seção 2.3, sobre por que isso importa).
 
 ## Sequência da interpretação via LLM
 
@@ -76,7 +76,7 @@ sequenceDiagram
 |---|---|
 | `src/ga_utils.py` | `carregar_dados` (mesmo pré-processamento do notebook 01); `criar_individuo_*`/`mutar_*`/`fitness_*`/`construir_*` para cada um dos 3 algoritmos; `crossover`, `selecao_torneio`, `selecao_roleta` compartilhados; `rodar_ga` (motor do GA, genérico por algoritmo); `calcular_metricas` |
 | `src/llm_utils.py` | `SYSTEM_PROMPT`; `obter_features_importantes` (explicabilidade); `formatar_contexto_ga`; `montar_prompt`; `gerar_explicacao` (API Anthropic, com system prompt) |
-| `notebooks/GA_HyperparametersOptimization.ipynb` | Orquestra tudo: carrega os dados, roda os 5 experimentos via `ga_utils.rodar_ga`, compara com o baseline, gera as explicações via LLM |
+| `notebooks/GA_HyperparametersOptimization.ipynb` | Orquestra tudo: carrega os dados, roda os 3 experimentos via `ga_utils.rodar_ga`, compara com o baseline, gera as explicações via LLM |
 
 ## Implementação em nuvem (opcional, item de pontuação extra)
 

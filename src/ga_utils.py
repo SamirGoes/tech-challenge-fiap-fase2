@@ -57,17 +57,23 @@ def calcular_metricas(y_true, y_pred):
         "f1": f1_score(y_true, y_pred, zero_division=0),
     }
 
-def _fitness_cv(construir_modelo, individuo, X_train, y_train, X_test, y_test):
+def _fitness_cv(construir_modelo, individuo, X_train, y_train, n_splits=5, random_state=42):
+    """Fitness via StratifiedKFold só no X_train — o X_test nunca entra na busca do GA."""
+    X_train = np.asarray(X_train)
+    y_train = np.asarray(y_train)
 
-    modelo = construir_modelo(individuo)
-    modelo.fit(X_train, y_train)
-    y_pred = modelo.predict(X_test)
+    accs, recs, f1s = [], [], []
+    skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=random_state)
+    for idx_treino, idx_val in skf.split(X_train, y_train):
+        modelo = construir_modelo(individuo)
+        modelo.fit(X_train[idx_treino], y_train[idx_treino])
+        y_pred = modelo.predict(X_train[idx_val])
 
-    acc = accuracy_score(y_test, y_pred)
-    rec = recall_score(y_test, y_pred, zero_division=0)
-    f1 = f1_score(y_test, y_pred, zero_division=0)
+        accs.append(accuracy_score(y_train[idx_val], y_pred))
+        recs.append(recall_score(y_train[idx_val], y_pred, zero_division=0))
+        f1s.append(f1_score(y_train[idx_val], y_pred, zero_division=0))
 
-    return 0.5 * rec + 0.3 * f1 + 0.2 * acc
+    return 0.5 * np.mean(recs) + 0.3 * np.mean(f1s) + 0.2 * np.mean(accs)
 
 
 # --------------------------------------------------------------------------
@@ -124,8 +130,8 @@ def construir_rf(individuo):
     )
 
 
-def fitness_rf(individuo, X_train, y_train, X_test, y_test):
-    return _fitness_cv(construir_rf, individuo, X_train, y_train, X_test, y_test)
+def fitness_rf(individuo, X_train, y_train):
+    return _fitness_cv(construir_rf, individuo, X_train, y_train)
 
 
 # --------------------------------------------------------------------------
@@ -165,8 +171,8 @@ def construir_log(individuo):
     )
 
 
-def fitness_log(individuo, X_train, y_train, X_test, y_test):
-    return _fitness_cv(construir_log, individuo, X_train, y_train, X_test, y_test)
+def fitness_log(individuo, X_train, y_train):
+    return _fitness_cv(construir_log, individuo, X_train, y_train)
 
 
 # --------------------------------------------------------------------------
@@ -205,17 +211,24 @@ def prever_linear(modelo, X, individuo):
     y_pred_continuo = modelo.predict(X)
     return (y_pred_continuo >= individuo["threshold"]).astype(int)
 
-def fitness_linear(individuo, X_train, Y_train, X_test, Y_test):
+def fitness_linear(individuo, X_train, Y_train, n_splits=5, random_state=42):
+    # adicionado posteriormente, pois quando usávamos o x_test ele convergia muito rápido
+    # pois quando via o fitness já usava o holdout, então o modelo já sabia a resposta e não precisava generalizar
+    X_train = np.asarray(X_train)
+    Y_train = np.asarray(Y_train)
 
-    modelo = construir_linear(individuo)
-    modelo.fit(X_train, Y_train)
-    y_pred = prever_linear(modelo, X_test, individuo)
+    accs, recs, f1s = [], [], []
+    skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=random_state)
+    for idx_treino, idx_val in skf.split(X_train, Y_train):
+        modelo = construir_linear(individuo)
+        modelo.fit(X_train[idx_treino], Y_train[idx_treino])
+        y_pred = prever_linear(modelo, X_train[idx_val], individuo)
 
-    acc = accuracy_score(Y_test, y_pred)
-    rec = recall_score(Y_test, y_pred, zero_division=0)
-    f1 = f1_score(Y_test, y_pred, zero_division=0)
+        accs.append(accuracy_score(Y_train[idx_val], y_pred))
+        recs.append(recall_score(Y_train[idx_val], y_pred, zero_division=0))
+        f1s.append(f1_score(Y_train[idx_val], y_pred, zero_division=0))
 
-    return 0.5 * rec + 0.3 * f1 + 0.2 * acc
+    return 0.5 * np.mean(recs) + 0.3 * np.mean(f1s) + 0.2 * np.mean(accs)
 
 
 # --------------------------------------------------------------------------
@@ -272,6 +285,8 @@ MUTAR = {
 
 def rodar_ga(algoritmo, X_train, y_train, X_test, y_test, tamanho_populacao, geracoes,
              mutacao, selecao_func=selecao_torneio, mutacao_final=None, seed=None):
+    # X_test/y_test ficam só na assinatura por compatibilidade com quem chama —
+    # o fitness (abaixo) usa StratifiedKFold só no X_train para não vazar o holdout.
     if seed is not None:
         random.seed(seed)
 
@@ -286,7 +301,7 @@ def rodar_ga(algoritmo, X_train, y_train, X_test, y_test, tamanho_populacao, ger
         taxa = mutacao if mutacao_final is None else (
             mutacao + (mutacao_final - mutacao) * (geracao / max(geracoes - 1, 1))
         )
-        fitnesses = [fitness_func(ind, X_train, y_train, X_test, y_test) for ind in populacao]
+        fitnesses = [fitness_func(ind, X_train, y_train) for ind in populacao]
         historico.append({
             "geracao": geracao,
             "melhor": max(fitnesses),

@@ -1,19 +1,21 @@
 LAUDO
 
-**LAUDO DE TRIAGEM AUTOMÁTICA – CÂNCER DE MAMA**
+**LAUDO DE TRIAGEM AUTOMÁTICA — CÂNCER DE MAMA**
 
-**Resultado: POSITIVO – Tumor classificado como MALIGNO**
+---
 
-Nossa detecção automática indicou **99% de chance de o tumor ser maligno**. O que mais chamou atenção foram três características: o tamanho extremamente grande do tumor (raio de 25,6 mm), além de irregularidades bem marcadas no contorno — especificamente pontos côncavos que aparecem de forma concentrada e também distribuída na borda da lesão. Essa combinação de um tumor volumoso com bordas irregulares é bastante sugestiva de malignidade.
+**Resultado: POSITIVO — Tumor classificado como MALIGNO**
 
-É importante ressaltar que **este é um resultado de triagem automática e não substitui o diagnóstico clínico definido**. Recomenda-se prosseguir com avaliação médica complementar para confirmação e planejamento do melhor manejo para a paciente.
+Nossa detecção automática indicou **100% de chance de o tumor ser maligno**. O que mais chamou atenção foi a textura extremamente irregular da lesão, que foi o fator decisivo. Além disso, o tamanho do tumor é significativamente aumentado, e há bastante variação nas suas dimensões, o que reforça a suspeita de malignidade.
+
+Importante lembrar que este é um resultado de triagem automática e **não substitui o diagnóstico clínico definitivo**. Recomenda-se confirmação com avaliação médica e exames adicionais conforme protocolo.
 
 RELATÓRIO
 
-# Relatório de Resultados – Triagem Automática de Câncer de Mama
+# Relatório do Experimento de Triagem de Câncer de Mama
 
-O método de regressão logística otimizado alcançou **acurácia 99.1%, recall 100.0% e F1 0.99**, mantendo o desempenho igual ao da versão original em todas as três métricas. As três estratégias de otimização testadas (GA, mutação adaptativa e mutação com seleção por roleta) produziram resultados equivalentes, confirmando a robustez do modelo. A validação em dados independentes (holdout) replicou os mesmos números, indicando boa generalização.
+O método otimizado com Algoritmo Genético apresentou o melhor desempenho, alcançando acurácia de 98.2%, recall de 97.6% e F1 de 0.98. Em comparação com a versão original, a otimização melhorou significativamente a capacidade de detecção, especialmente na taxa de acerto para casos positivos (recall).
 
-As medidas do tumor que mais influenciaram a identificação foram: o **tamanho (raio) em valores extremos**, que foi a mais decisiva, seguida pelos **pontos côncavos no contorno em valores extremos** e **pontos côncavos no contorno em valores médios**. A **textura em valores extremos** também contribuiu, mas com menor peso. Outras características como perímetro, área, suavidade e compactação não foram relevantes para o modelo final.
+As características que mais influenciaram as decisões do modelo foram: a textura do tumor (peso 0.835), a variação do raio (peso 0.684), o raio extremo (peso 0.622) e a simetria (peso 0.619). Também contribuíram de forma importante a área extrema, os pontos côncavos do contorno e o perímetro.
 
-Esses resultados sugerem que o sistema automatizado pode ser uma ferramenta confiável para auxiliar na triagem, com alta sensibilidade para detectar casos positivos.
+Estes resultados indicam que o modelo otimizado é robusto e confiável para apoiar a triagem automática em mamografias, identificando corretamente a maioria dos casos suspeitos.
