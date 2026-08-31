@@ -1,6 +1,6 @@
 # Guia de Conceitos — Fase 2 (GA + LLM)
 
-Cola de estudo para explicar o projeto (vídeo de defesa, perguntas da banca, dúvidas do grupo). Não é a documentação técnica em si — para isso, ver [ARCHITECTURE.md](ARCHITECTURE.md) e o notebook [`03_ga_llm_breast_cancer.ipynb`](../notebooks/03_ga_llm_breast_cancer.ipynb).
+Cola de estudo para explicar o projeto (vídeo de defesa, perguntas da banca, dúvidas do grupo). Não é a documentação técnica em si — para isso, ver [ARCHITECTURE.md](ARCHITECTURE.md) e o notebook [`GA_HyperparametersOptimization.ipynb`](../notebooks/GA_HyperparametersOptimization.ipynb).
 
 Para uma leitura linha a linha do código do GA (o que cada gene pode valer, exemplos concretos de crossover/mutação, e o passo a passo do Experimento 1), ver [GA_EXPLICADO.md](GA_EXPLICADO.md).
 

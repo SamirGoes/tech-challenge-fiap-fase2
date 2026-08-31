@@ -1,6 +1,6 @@
 # GA na prática — do código à explicação, linha a linha
 
-Este documento complementa o [`GUIA_CONCEITOS.md`](GUIA_CONCEITOS.md) (que é mais conceitual/glossário) com uma leitura detalhada do que o código de `src/ga_utils.py` faz de verdade — os valores possíveis de cada gene, o que cada operador (seleção, crossover, mutação) pode ou não produzir, e um passo a passo linha a linha do Experimento 1 (Regressão Linear) do notebook `03_ga_llm_breast_cancer.ipynb`.
+Este documento complementa o [`GUIA_CONCEITOS.md`](GUIA_CONCEITOS.md) (que é mais conceitual/glossário) com uma leitura detalhada do que o código de `src/ga_utils.py` faz de verdade — os valores possíveis de cada gene, o que cada operador (seleção, crossover, mutação) pode ou não produzir, e um passo a passo linha a linha do Experimento 1 (Regressão Linear) do notebook `GA_HyperparametersOptimization.ipynb`.
 
 ## O que é um Algoritmo Genético (GA)
 
@@ -76,7 +76,7 @@ def criar_individuo_linear():
 | `positive` | booleano | `True` ou `False` |
 | `threshold` | contínuo | qualquer valor entre 0.3 e 0.7 |
 
-## 2. Seleção — `selecao_torneio` ([`ga_utils.py:246-249`](../src/ga_utils.py))
+## 2. Seleção — `selecao_torneio` e `selecao_roleta` ([`ga_utils.py:236-253`](../src/ga_utils.py))
 
 ```python
 def selecao_torneio(populacao, fitnesses, k=3):
@@ -90,7 +90,25 @@ Aqui as "possibilidades" não são valores de gene, é *quem pode virar pai*. Qu
 
 Exemplo com população de fitness `[0.6, 0.9, 0.3, 0.5, 0.8]`: se o torneio sortear os índices `[0, 2, 3]` (fitness 0.6, 0.3, 0.5), o vencedor é o índice `0` — mesmo sem ser o melhor da população inteira, porque os outros 2 concorrentes *desse torneio específico* eram piores.
 
-## 3. Crossover — `crossover` ([`ga_utils.py:236-243`](../src/ga_utils.py))
+Os Experimentos 1–3 usam sempre `selecao_torneio`. O Experimento 4 troca por `selecao_roleta`:
+
+```python
+def selecao_roleta(populacao, fitnesses):
+    minimo = min(fitnesses)
+    pesos = [f - minimo + 1e-6 for f in fitnesses]
+    total = sum(pesos)
+    corte = random.uniform(0, total)
+    acumulado = 0.0
+    for individuo, peso in zip(populacao, pesos):
+        acumulado += peso
+        if acumulado >= corte:
+            return dict(individuo)
+    return dict(populacao[-1])
+```
+
+Em vez de um torneio entre poucos sorteados, a roleta reparte um "disco" proporcional ao fitness de cada indivíduo da população inteira e sorteia um ponto de corte nele — quanto maior o fitness, maior a fatia, maior a chance de ser escolhido. O `- minimo + 1e-6` só existe pra garantir que toda fatia seja positiva (fitness pode empatar ou, no limite, ser 0).
+
+## 3. Crossover — `crossover` ([`ga_utils.py:226-233`](../src/ga_utils.py))
 
 ```python
 def crossover(pai1, pai2):
@@ -149,6 +167,8 @@ filho = {"C": 0.05, "penalty": "l1", "class_weight": None}
 resultado = {"C": 12.7, "penalty": "l1", "class_weight": None}
 ```
 
+A `taxa` em si é sempre constante nos Experimentos 1–3. O Experimento 5 usa uma **taxa adaptativa**: começa em 0.2 e decai linearmente até 0.05 na última geração (calculado em `rodar_ga`, ver seção seguinte) — mais chance de mutação nas primeiras gerações (mais exploração), menos nas últimas (mais ajuste fino em torno do que já foi encontrado).
+
 ## 5. Fitness — a "nota" de cada indivíduo
 
 ```python
@@ -157,73 +177,70 @@ return 0.5 * np.mean(recs) + 0.3 * np.mean(f1s) + 0.2 * np.mean(accs)
 
 Recall, F1 e accuracy calculados em 5-fold CV (ver [`_fitness_cv`](../src/ga_utils.py) pra RF/Logística, ou o loop equivalente dentro de `fitness_linear` que aplica o `threshold` antes de medir as métricas). Fitness não gera possibilidades novas — é a função de avaliação que diz quais indivíduos merecem ser pais (via seleção) e quais sobrevivem por elitismo.
 
-## Quem realmente constrói a próxima geração
+## Quem realmente constrói a próxima geração — `rodar_ga` ([`ga_utils.py:273-310`](../src/ga_utils.py))
 
 ```python
+ranking = sorted(range(len(populacao)), key=lambda i: fitnesses[i], reverse=True)
 nova_populacao = [dict(populacao[i]) for i in ranking[:2]]  # elitismo
-while len(nova_populacao) < POP_1:
-    pai1 = ga_utils.selecao_torneio(populacao, fitnesses)
-    pai2 = ga_utils.selecao_torneio(populacao, fitnesses)
-    filho1, filho2 = ga_utils.crossover(pai1, pai2)
-    nova_populacao.append(ga_utils.mutar_linear(filho1, MUTACAO_1))
-    nova_populacao.append(ga_utils.mutar_linear(filho2, MUTACAO_1))
+while len(nova_populacao) < tamanho_populacao:
+    pai1 = selecao_func(populacao, fitnesses)
+    pai2 = selecao_func(populacao, fitnesses)
+    filho1, filho2 = crossover(pai1, pai2)
+    nova_populacao.append(mutar_func(filho1, taxa))
+    if len(nova_populacao) < tamanho_populacao:
+        nova_populacao.append(mutar_func(filho2, taxa))
 ```
 
-A `nova_populacao` é 100% composta por 4 fontes: **elitismo** (2 vagas, cópia exata dos melhores) + **torneio → crossover → mutação** (8 vagas, repetido até completar). Fitness não cria nada sozinha — ela só dá a "nota" que os outros operadores usam para ter direção.
+A `nova_populacao` é 100% composta por 4 fontes: **elitismo** (2 vagas, cópia exata dos melhores) + **seleção → crossover → mutação** (o resto das vagas, repetido até completar). Fitness não cria nada sozinha — ela só dá a "nota" que os outros operadores usam para ter direção. `selecao_func` é `selecao_torneio` por padrão (Experimentos 1–3 e 5) ou `selecao_roleta` (Experimento 4); `mutar_func` é o `mutar_*` do algoritmo escolhido.
 
 Cada peça isolada não seria suficiente:
 - **Só fitness + elitismo**: a população nunca mudaria, ficaria travada nos mesmos indivíduos iniciais.
 - **Só crossover, sem mutação**: o GA fica limitado a recombinar o que já existia na população inicial — nunca alcança um valor que nenhum indivíduo inicial tinha.
 - **Só mutação, sem seleção**: vira busca aleatória pura, sem aproveitar o que já foi aprendido.
-- **Só torneio, sem crossover/mutação**: a população encolhe pro mesmo indivíduo repetido, perdendo toda diversidade.
+- **Só seleção, sem crossover/mutação**: a população encolhe pro mesmo indivíduo repetido, perdendo toda diversidade.
 
 | Operador | O que faz sozinho | Por que precisa dos outros |
 |---|---|---|
 | **Fitness** | Mede quão bom é cada indivíduo | Não cria nada — só dá a "nota" que os outros usam |
-| **Seleção (torneio)** | Decide quem tem mais chance de virar pai | Sem crossover/mutação, não geraria nada novo |
+| **Seleção (torneio ou roleta)** | Decide quem tem mais chance de virar pai | Sem crossover/mutação, não geraria nada novo |
 | **Crossover** | Recombina genes dos pais em filhos | Sem mutação, fica limitado ao que já existia na população |
 | **Mutação** | Injeta valores genuinamente novos | Sem seleção, não teria direção — seria busca aleatória |
 | **Elitismo** | Garante que o melhor não se perde | Não gera variação — só protege o que já foi achado |
 
 ## Passo a passo — Experimento 1 (Regressão Linear), linha por linha
 
-Código exato da célula do notebook (`notebooks/03_ga_llm_breast_cancer.ipynb`):
+A célula do notebook (`notebooks/GA_HyperparametersOptimization.ipynb`) chama `ga_utils.rodar_ga` com o algoritmo e os parâmetros do GA:
 
 ```python
-random.seed(42)
+populacao, historico_linear, fitnesses, melhor_linear = ga_utils.rodar_ga(
+    "regressao_linear", X_train, y_train, X_test, y_test,
+    tamanho_populacao=10, geracoes=20, mutacao=0.1, seed=42,
+)
 ```
-Fixa a semente do gerador aleatório — sem isso, cada execução do notebook sortearia coisas diferentes. Com a seed fixa, o resultado é **reprodutível**.
+`seed=42` fixa a semente do gerador aleatório antes de criar a população — sem isso, cada execução sortearia coisas diferentes; com a seed fixa, o resultado é **reprodutível**. `tamanho_populacao=10, geracoes=20, mutacao=0.1` define população de 10 indivíduos, 20 gerações, taxa de mutação de 10%; `selecao_func` e `mutacao_final` ficam nos valores padrão (torneio, taxa constante) — só os Experimentos 4 e 5 os sobrescrevem.
+
+Por dentro, é isso que `rodar_ga` faz:
 
 ```python
-POP_1, GERACOES_1, MUTACAO_1 = 10, 10, 0.1
+populacao = [criar_individuo() for _ in range(tamanho_populacao)]
 ```
-População de 10 indivíduos, 10 gerações, taxa de mutação de 10%.
+Gera a população inicial: 10 dicts aleatórios, via `criar_individuo_linear` (escolhido a partir do algoritmo `"regressao_linear"`).
 
 ```python
-populacao = [ga_utils.criar_individuo_linear() for _ in range(POP_1)]
+for geracao in range(geracoes):
 ```
-Gera a população inicial: 10 dicts aleatórios.
+Início do loop principal — roda 20 vezes.
 
 ```python
-historico_linear = []
+    fitnesses = [fitness_func(ind, X_train, y_train, X_test, y_test) for ind in populacao]
 ```
-Lista que vai guardar um resumo (melhor/média fitness) de cada geração, pra plotar o gráfico de convergência e salvar em CSV depois.
+O passo mais caro: avalia a fitness de cada um dos 10 indivíduos (treina no `X_train`/`y_train`, mede no holdout `X_test`/`y_test`). Resultado: lista de 10 floats na mesma ordem da `populacao`.
 
 ```python
-for geracao in range(GERACOES_1):
+    historico.append({"geracao": geracao, "melhor": max(fitnesses), "media": float(np.mean(fitnesses)), "taxa_mutacao": taxa})
+    print(f"Geração {geracao}: melhor={max(fitnesses):.4f}  média={np.mean(fitnesses):.4f}  mutação={taxa:.3f}")
 ```
-Início do loop principal — roda 10 vezes.
-
-```python
-    fitnesses = [ga_utils.fitness_linear(ind, X_train, y_train) for ind in populacao]
-```
-O passo mais caro: avalia a fitness de cada um dos 10 indivíduos (treina + valida em 5-fold CV cada um). Resultado: lista de 10 floats na mesma ordem da `populacao`.
-
-```python
-    historico_linear.append({"geracao": geracao, "melhor": max(fitnesses), "media": float(np.mean(fitnesses))})
-    print(f"Geração {geracao}: melhor={max(fitnesses):.4f}  média={np.mean(fitnesses):.4f}")
-```
-Guarda e imprime o progresso dessa geração.
+Guarda e imprime o progresso dessa geração — `taxa` é sempre `mutacao` aqui (Experimento 1 não usa `mutacao_final`).
 
 ```python
     ranking = sorted(range(len(populacao)), key=lambda i: fitnesses[i], reverse=True)
@@ -231,20 +248,20 @@ Guarda e imprime o progresso dessa geração.
 Ordena os **índices** (não os indivíduos diretamente) por fitness decrescente — preserva a ligação entre indivíduo e seu fitness sem precisar zipar as duas listas.
 
 ```python
-    nova_populacao = [dict(populacao[i]) for i in ranking[:2]]  # elitismo
+    nova_populacao = [dict(populacao[i]) for i in ranking[:2]]
 ```
-Pega os 2 melhores índices e faz uma **cópia** (`dict(...)`) de cada um — cópia é importante pra não acidentalmente compartilhar o mesmo objeto entre gerações.
+Pega os 2 melhores índices e faz uma **cópia** (`dict(...)`) de cada um — cópia é importante pra não acidentalmente compartilhar o mesmo objeto entre gerações (elitismo).
 
 ```python
-    while len(nova_populacao) < POP_1:
-        pai1 = ga_utils.selecao_torneio(populacao, fitnesses)
-        pai2 = ga_utils.selecao_torneio(populacao, fitnesses)
-        filho1, filho2 = ga_utils.crossover(pai1, pai2)
-        nova_populacao.append(ga_utils.mutar_linear(filho1, MUTACAO_1))
-        if len(nova_populacao) < POP_1:
-            nova_populacao.append(ga_utils.mutar_linear(filho2, MUTACAO_1))
+    while len(nova_populacao) < tamanho_populacao:
+        pai1 = selecao_func(populacao, fitnesses)
+        pai2 = selecao_func(populacao, fitnesses)
+        filho1, filho2 = crossover(pai1, pai2)
+        nova_populacao.append(mutar_func(filho1, taxa))
+        if len(nova_populacao) < tamanho_populacao:
+            nova_populacao.append(mutar_func(filho2, taxa))
 ```
-Preenche as 8 vagas restantes: escolhe 2 pais por torneio na população **atual** (a antiga), cruza, muta os dois filhos, adiciona. O `if` interno evita passar do tamanho `POP_1` caso sobre só 1 vaga.
+Preenche as vagas restantes: escolhe 2 pais por torneio (`selecao_func` = `selecao_torneio` aqui) na população **atual** (a antiga), cruza, muta os dois filhos, adiciona. O `if` interno evita passar do `tamanho_populacao` caso sobre só 1 vaga.
 
 ```python
     populacao = nova_populacao
@@ -252,9 +269,12 @@ Preenche as 8 vagas restantes: escolhe 2 pais por torneio na população **atual
 Fim do `while`: a população antiga é descartada, a nova vira a população da próxima iteração do `for`.
 
 ```python
-melhor_linear = populacao[int(np.argmax(fitnesses))]
+melhor = populacao[int(np.argmax(fitnesses))]
+return populacao, historico, fitnesses, melhor
 ```
-Fora do loop `for`, depois das 10 gerações: acha o índice do maior valor na última lista de fitness calculada, pegando o melhor indivíduo já avaliado.
+Fora do loop `for`, depois das 20 gerações: acha o índice do maior valor na última lista de fitness calculada, pegando o melhor indivíduo já avaliado, e retorna tudo pra célula do notebook.
+
+De volta na célula, o resto é igual a antes:
 
 ```python
 pd.DataFrame(historico_linear).to_csv(RESULTADOS_DIR / "fitness_history_regressao_linear.csv", index=False)

@@ -1,12 +1,3 @@
-"""Funções do Algoritmo Genético usadas para otimizar os 3 modelos de
-diagnóstico (Regressão Linear, Regressão Logística, Random Forest) treinados
-em notebooks/01_analise_e_modelagem.ipynb.
-
-Cada algoritmo tem seu próprio criar_individuo_*/mutar_*/fitness_* porque os
-hiperparâmetros que cada um aceita são diferentes. Seleção e crossover são
-compartilhados entre os três porque só mexem no dict do indivíduo, sem
-precisar saber o que cada chave significa.
-"""
 import json
 import random
 from pathlib import Path
@@ -36,9 +27,6 @@ DATA_PATH = Path(__file__).resolve().parents[1] / "data" / "data.csv"
 
 
 def carregar_dados():
-    """Mesmo pré-processamento do notebook 01: dropa colunas não-preditivas,
-    faz split 80/20 estratificado (random_state=42) e ajusta o StandardScaler
-    só no treino."""
     df = pd.read_csv(DATA_PATH)
     X = df.drop(columns=["id", "Unnamed: 32", "diagnosis"])
     y = df["diagnosis"].map({"B": 0, "M": 1})
@@ -231,8 +219,7 @@ def fitness_linear(individuo, X_train, Y_train, X_test, Y_test):
 
 
 # --------------------------------------------------------------------------
-# Compartilhado (seleção e crossover não precisam saber o que cada chave
-# do dict significa, então são os mesmos para os 3 algoritmos)
+# Compartilhado
 # --------------------------------------------------------------------------
 
 
@@ -251,6 +238,76 @@ def selecao_torneio(populacao, fitnesses, k=3):
     indices = random.sample(range(len(populacao)), k)
     melhor_idx = max(indices, key=lambda i: fitnesses[i])
     return dict(populacao[melhor_idx])
+
+
+def selecao_roleta(populacao, fitnesses):
+    minimo = min(fitnesses)
+    pesos = [f - minimo + 1e-6 for f in fitnesses]
+    total = sum(pesos)
+    corte = random.uniform(0, total)
+    acumulado = 0.0
+    for individuo, peso in zip(populacao, pesos):
+        acumulado += peso
+        if acumulado >= corte:
+            return dict(individuo)
+    return dict(populacao[-1])
+
+
+CRIAR_INDIVIDUO = {
+    "random_forest": criar_individuo_rf,
+    "regressao_logistica": criar_individuo_log,
+    "regressao_linear": criar_individuo_linear,
+}
+FITNESS = {
+    "random_forest": fitness_rf,
+    "regressao_logistica": fitness_log,
+    "regressao_linear": fitness_linear,
+}
+MUTAR = {
+    "random_forest": mutar_rf,
+    "regressao_logistica": mutar_log,
+    "regressao_linear": mutar_linear,
+}
+
+
+def rodar_ga(algoritmo, X_train, y_train, X_test, y_test, tamanho_populacao, geracoes,
+             mutacao, selecao_func=selecao_torneio, mutacao_final=None, seed=None):
+    if seed is not None:
+        random.seed(seed)
+
+    criar_individuo = CRIAR_INDIVIDUO[algoritmo]
+    fitness_func = FITNESS[algoritmo]
+    mutar_func = MUTAR[algoritmo]
+
+    populacao = [criar_individuo() for _ in range(tamanho_populacao)]
+    historico = []
+
+    for geracao in range(geracoes):
+        taxa = mutacao if mutacao_final is None else (
+            mutacao + (mutacao_final - mutacao) * (geracao / max(geracoes - 1, 1))
+        )
+        fitnesses = [fitness_func(ind, X_train, y_train, X_test, y_test) for ind in populacao]
+        historico.append({
+            "geracao": geracao,
+            "melhor": max(fitnesses),
+            "media": float(np.mean(fitnesses)),
+            "taxa_mutacao": taxa,
+        })
+        print(f"Geração {geracao}: melhor={max(fitnesses):.4f}  média={np.mean(fitnesses):.4f}  mutação={taxa:.3f}")
+
+        ranking = sorted(range(len(populacao)), key=lambda i: fitnesses[i], reverse=True)
+        nova_populacao = [dict(populacao[i]) for i in ranking[:2]]
+        while len(nova_populacao) < tamanho_populacao:
+            pai1 = selecao_func(populacao, fitnesses)
+            pai2 = selecao_func(populacao, fitnesses)
+            filho1, filho2 = crossover(pai1, pai2)
+            nova_populacao.append(mutar_func(filho1, taxa))
+            if len(nova_populacao) < tamanho_populacao:
+                nova_populacao.append(mutar_func(filho2, taxa))
+        populacao = nova_populacao
+
+    melhor = populacao[int(np.argmax(fitnesses))]
+    return populacao, historico, fitnesses, melhor
 
 
 # --------------------------------------------------------------------------
@@ -278,11 +335,6 @@ def prever_modelo(algoritmo, modelo, X, individuo=None):
 
 
 def importancias_do_modelo(modelo, feature_names):
-    """Ranking das medidas segundo o modelo já treinado pelo GA.
-
-    Random Forest: feature_importances_.
-    Modelos lineares (logística / linear): |coef_|.
-    """
     if hasattr(modelo, "feature_importances_"):
         pesos = np.asarray(modelo.feature_importances_, dtype=float).ravel()
         metodo = "feature_importances_"
@@ -320,15 +372,8 @@ def persistir_exame_simplificado(
     resultados_dir=None,
     model_dir=None,
 ):
-    """Lê as importâncias do modelo otimizado pelo GA, treina de novo só com
-    as N medidas mais importantes e grava o JSON que a API/o Angular consomem.
-
-    Arquivos:
-    - experiments/results/feature_importances.json
-    - api/model/feature_importances.json
-    - api/model/modelo_simplificado.joblib
-    - api/model/scaler_simplificado.joblib
-    """
+    """Grava experiments/results/feature_importances.json, api/model/feature_importances.json,
+    api/model/modelo_simplificado.joblib e api/model/scaler_simplificado.joblib."""
     resultados_dir = Path(resultados_dir) if resultados_dir else REPO_ROOT / "experiments" / "results"
     model_dir = Path(model_dir) if model_dir else REPO_ROOT / "api" / "model"
     resultados_dir.mkdir(parents=True, exist_ok=True)

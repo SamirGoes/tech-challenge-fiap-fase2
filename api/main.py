@@ -236,7 +236,7 @@ def exigir_simplificado() -> PacoteModelo:
     if PACOTE_SIMPLIFICADO is None:
         raise HTTPException(
             status_code=503,
-            detail="Exame simplificado ainda sem ranking. Rode a seção de feature importances no notebook 03_ga_llm_breast_cancer.ipynb",
+            detail="Exame simplificado ainda sem ranking. Rode a seção de feature importances no notebook GA_HyperparametersOptimization.ipynb",
         )
     return PACOTE_SIMPLIFICADO
 

@@ -22,14 +22,18 @@ Cada indivíduo é um cromossomo — um dicionário `{hiperparâmetro: valor}` �
 | Regressão Logística | `C` (regularização, escala log), `penalty` (L1/L2), `class_weight` |
 | Random Forest | `n_estimators`, `max_depth`, `min_samples_split`, `min_samples_leaf`, `max_features`, `criterion` |
 
-O loop de gerações do GA está escrito diretamente nas células do notebook `03_ga_llm_breast_cancer.ipynb` (um bloco por algoritmo/experimento), chamando as funções de apoio de `ga_utils.py`: `criar_individuo_*`, `mutar_*`, `fitness_*` (específicas de cada algoritmo, porque os hiperparâmetros são diferentes) e `crossover`/`selecao_torneio` (compartilhadas entre os três, porque operam sobre o dict genérico sem precisar saber o que cada gene significa).
+O loop de gerações do GA é uma função só — `ga_utils.rodar_ga(algoritmo, ...)` — chamada uma vez por experimento no notebook `GA_HyperparametersOptimization.ipynb`. Ela despacha internamente para as funções de apoio do algoritmo escolhido (`criar_individuo_*`, `mutar_*`, `fitness_*`, específicas de cada um porque os hiperparâmetros são diferentes) e recebe como parâmetros a seleção (`crossover`/`selecao_torneio`/`selecao_roleta`, compartilhadas entre os três porque operam sobre o dict genérico sem precisar saber o que cada gene significa) e a taxa de mutação.
 
 ### 2.2 Operadores genéticos
 
-- **Seleção**: torneio, k=3 — sorteia 3 indivíduos da população, o de maior fitness vence.
+- **Seleção**: torneio, k=3 (Experimentos 1–3 e 5) — sorteia 3 indivíduos da população, o de maior fitness vence.
 - **Crossover**: uniforme por gene — cada gene do filho vem aleatoriamente de um dos 2 pais.
 - **Mutação**: por gene, com uma taxa configurável por experimento — reamostra o valor do gene dentro do seu espaço de busca.
 - **Elitismo**: os 2 melhores indivíduos de cada geração sobrevivem intactos para a próxima.
+
+Os Experimentos 4 e 5 trocam, cada um, um único operador em relação ao experimento equivalente (3 e 2, respectivamente), pra isolar o efeito de cada mudança:
+- **Seleção por roleta** (`selecao_roleta`, Experimento 4): em vez de um torneio entre poucos sorteados, cada indivíduo recebe uma chance de virar pai proporcional ao seu fitness (fitness-proportionate selection) — indivíduos piores ainda podem reproduzir, só que com probabilidade menor.
+- **Mutação adaptativa** (Experimento 5): a taxa de mutação não é constante — começa em 20% e decai linearmente até 5% na última geração, priorizando exploração no início da busca e ajuste fino no final.
 
 ### 2.3 Função de fitness
 

@@ -25,7 +25,7 @@ flowchart LR
 
 ## Fluxo do Algoritmo Genético
 
-O notebook `03_ga_llm_breast_cancer.ipynb` roda esse fluxo **uma vez por algoritmo** (3 experimentos, cada um com sua própria população/mutação/nº de gerações). O loop de gerações fica escrito direto na célula do notebook — não existe um "motor" único escondido num módulo separado, só as funções de apoio (`criar_individuo_*`, `mutar_*`, `fitness_*`, `crossover`, `selecao_torneio`) vêm de `src/ga_utils.py`.
+O notebook `GA_HyperparametersOptimization.ipynb` roda esse fluxo **5 vezes** — Experimentos 1–3, um por algoritmo, cada um com sua própria população/mutação/nº de gerações, e mais 2 experimentos (4 e 5) que isolam a troca de um operador (seleção por roleta, mutação adaptativa). O loop de gerações é um único "motor" — `ga_utils.rodar_ga(algoritmo, ...)` — que cada célula de experimento chama passando o algoritmo e os parâmetros do GA; internamente ele despacha para as funções de apoio (`criar_individuo_*`, `mutar_*`, `fitness_*`) do algoritmo escolhido.
 
 ```mermaid
 flowchart TD
@@ -43,11 +43,13 @@ flowchart TD
     Best --> End([Fim])
 ```
 
+O diagrama acima é o padrão usado nos Experimentos 1–3 (seleção por torneio, mutação com taxa fixa). Os Experimentos 4 e 5 rodam o mesmo fluxo trocando, respectivamente, o passo de Seleção (`ga_utils.selecao_roleta`) e o de Mutação (taxa decrescente por geração, via `mutacao_final` em `rodar_ga`).
+
 ## Sequência da interpretação via LLM
 
 ```mermaid
 sequenceDiagram
-    participant NB as Notebook 03
+    participant NB as Notebook
     participant M as Modelo otimizado
     participant U as llm_utils.py
     participant API as API Anthropic (Claude)
@@ -66,15 +68,15 @@ sequenceDiagram
 
 ## Por que cada algoritmo tem seu próprio código de GA
 
-`ga_utils.py` **não** tem uma abstração única de "espaço de genes" compartilhada entre os 3 algoritmos — cada um tem sua função `criar_individuo_*` e `mutar_*` própria, porque os hiperparâmetros de Random Forest, Regressão Logística e Regressão Linear são bem diferentes entre si (categóricos vs. contínuos, ranges diferentes, e no caso da Regressão Linear um gene extra que nem é hiperparâmetro do sklearn — o `threshold`). Só o que é genuinamente igual entre os três — `crossover` (troca chaves de um dict) e `selecao_torneio` (compara uma lista de fitness) — é compartilhado, porque essas duas funções não precisam saber o que cada gene significa.
+`ga_utils.py` **não** tem uma abstração única de "espaço de genes" compartilhada entre os 3 algoritmos — cada um tem sua função `criar_individuo_*` e `mutar_*` própria, porque os hiperparâmetros de Random Forest, Regressão Logística e Regressão Linear são bem diferentes entre si (categóricos vs. contínuos, ranges diferentes, e no caso da Regressão Linear um gene extra que nem é hiperparâmetro do sklearn — o `threshold`). O que é genuinamente igual entre os três — `crossover`, `selecao_torneio`, `selecao_roleta` — é compartilhado, porque essas funções não precisam saber o que cada gene significa. `rodar_ga` amarra tudo: recebe o nome do algoritmo e despacha para o `criar_individuo_*`/`fitness_*`/`mutar_*` certo via os dicts `CRIAR_INDIVIDUO`/`FITNESS`/`MUTAR`.
 
 ## Módulos
 
 | Arquivo | Responsabilidade |
 |---|---|
-| `src/ga_utils.py` | `carregar_dados` (mesmo pré-processamento do notebook 01); `criar_individuo_*`/`mutar_*`/`fitness_*`/`construir_*` para cada um dos 3 algoritmos; `crossover` e `selecao_torneio` compartilhados; `calcular_metricas` |
+| `src/ga_utils.py` | `carregar_dados` (mesmo pré-processamento do notebook 01); `criar_individuo_*`/`mutar_*`/`fitness_*`/`construir_*` para cada um dos 3 algoritmos; `crossover`, `selecao_torneio`, `selecao_roleta` compartilhados; `rodar_ga` (motor do GA, genérico por algoritmo); `calcular_metricas` |
 | `src/llm_utils.py` | `SYSTEM_PROMPT`; `obter_features_importantes` (explicabilidade); `formatar_contexto_ga`; `montar_prompt`; `gerar_explicacao` (API Anthropic, com system prompt) |
-| `notebooks/03_ga_llm_breast_cancer.ipynb` | Orquestra tudo: carrega os dados, roda os 3 experimentos (loop de gerações visível na célula), compara com o baseline, gera as explicações via LLM |
+| `notebooks/GA_HyperparametersOptimization.ipynb` | Orquestra tudo: carrega os dados, roda os 5 experimentos via `ga_utils.rodar_ga`, compara com o baseline, gera as explicações via LLM |
 
 ## Implementação em nuvem (opcional, item de pontuação extra)
 
