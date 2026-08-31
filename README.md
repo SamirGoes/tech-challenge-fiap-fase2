@@ -4,6 +4,12 @@ Projeto 1 do Tech Challenge Fase 2 (pós-graduação IADT/FIAP): otimização de
 
 Este repositório dá continuidade ao trabalho da [Fase 1](https://github.com/Rafael-Evangelista/tech-challenge-fiap), que treinou 3 modelos (Regressão Linear, Regressão Logística, Random Forest) para classificar tumores de mama como malignos ou benignos, a partir do dataset Wisconsin Breast Cancer.
 
+## O grupo é composto por:
+- Ana Clara
+- Diego Justino
+- Rafael Evangelista
+- Samir Góes
+
 ## O que este projeto faz
 
 1. **Otimiza os hiperparâmetros da Regressão Logística** (o modelo que se destacou na Fase 1) usando um Algoritmo Genético implementado do zero (`src/ga_utils.py`).
@@ -26,9 +32,6 @@ tech-challenge-fiap-fase2/
 ├── experiments/results/                   # Saída dos experimentos: histórico de fitness, melhores hiperparâmetros, comparação final
 ├── docs/
 │   ├── ARCHITECTURE.md                    # Diagramas de arquitetura (Mermaid), incluindo a nuvem
-│   ├── GUIA_CONCEITOS.md                  # Glossário/FAQ dos conceitos de GA e prompt engineering
-│   ├── GA_EXPLICADO.md                    # Leitura linha a linha do código do GA, com exemplos
-│   └── EXPLICACAO_GRUPO.md                # Texto simples para apresentar o projeto ao grupo
 ├── frontend/                              # Interface Angular 22 (form /predict + relatório /predict/lote)
 ├── api/                                   # [opcional] API do modelo otimizado (FastAPI + Lambda)
 │   ├── main.py
