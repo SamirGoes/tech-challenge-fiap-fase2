@@ -7,7 +7,7 @@ Este repositório dá continuidade ao trabalho da [Fase 1](https://github.com/Ra
 ## O que este projeto faz
 
 1. **Otimiza os hiperparâmetros dos 3 modelos da Fase 1** usando um Algoritmo Genético implementado do zero (`src/ga_utils.py`).
-2. **Roda 3 experimentos** com configurações diferentes do GA (população/mutação/gerações), um por algoritmo.
+2. **Roda 5 experimentos**: 3 com configurações diferentes do GA (população/mutação/gerações), um por algoritmo, e mais 2 trocando o algoritmo de seleção e de mutação.
 3. **Compara** cada modelo original com sua versão otimizada, no mesmo holdout de teste.
 4. **Integra a API da Anthropic (Claude)** para gerar um laudo em linguagem natural (NLP): resultado positivo/negativo, chance de ter a doença e uma explicação humana das características que mais pesaram (`src/llm_utils.py`).
 
@@ -21,7 +21,7 @@ tech-challenge-fiap-fase2/
 │   ├── ga_utils.py                        # Algoritmo Genético: criar/mutar/fitness por algoritmo, crossover, seleção
 │   └── llm_utils.py                       # Integração com a API Anthropic (Claude)
 ├── notebooks/
-│   └── 03_ga_llm_breast_cancer.ipynb      # Orquestra os 3 experimentos, comparação e demonstração da LLM
+│   └── GA_HyperparametersOptimization.ipynb  # Orquestra os 5 experimentos, comparação e demonstração da LLM
 ├── tests/                                 # Testes automatizados (pytest)
 ├── experiments/results/                   # Saída dos experimentos: histórico de fitness, melhores hiperparâmetros, comparação final
 ├── docs/
@@ -50,7 +50,7 @@ python -m pip install -r requirements.txt
 # Para a seção de LLM: preencha a chave no arquivo .env (veja .env.example).
 # Sem o .env, o GA roda normalmente — só não chama o Claude.
 
-jupyter notebook notebooks/03_ga_llm_breast_cancer.ipynb
+jupyter notebook notebooks/GA_HyperparametersOptimization.ipynb
 ```
 
 ### Testes automatizados
@@ -99,10 +99,10 @@ npm start
 ## Entregáveis
 
 - [x] Repositório Git com código, testes e documentação
-- [x] Algoritmo Genético implementado (`src/ga_utils.py`) — 3 experimentos com configurações diferentes
+- [x] Algoritmo Genético implementado (`src/ga_utils.py`) — 5 experimentos com configurações e operadores diferentes
 - [x] Integração com LLM (`src/llm_utils.py`)
 - [x] Testes automatizados (`tests/`)
 - [x] Relatório técnico (`RELATORIO_TECNICO.md`)
-- [x] Notebook de demonstração (`notebooks/03_ga_llm_breast_cancer.ipynb`)
+- [x] Notebook de demonstração (`notebooks/GA_HyperparametersOptimization.ipynb`)
 - [x] **Opcional/extra:** Implementação em nuvem — API com autoscaling (`api/`, `Dockerfile`, `terraform/`)
 - [ ] Vídeo de demonstração (até 15 min, YouTube/Vimeo)

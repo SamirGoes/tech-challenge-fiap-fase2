@@ -21,6 +21,14 @@ def test_selecao_torneio_escolhe_o_melhor_quando_k_cobre_populacao():
     assert vencedores == {1}
 
 
+def test_selecao_roleta_favorece_fitness_mais_alto():
+    populacao = [{"n": i} for i in range(3)]
+    fitnesses = [0.0, 0.0, 1.0]
+    random.seed(42)
+    vencedores = [ga_utils.selecao_roleta(populacao, fitnesses)["n"] for _ in range(200)]
+    assert vencedores.count(2) > 150
+
+
 def test_criar_individuo_rf_respeita_limites():
     random.seed(0)
     for _ in range(30):
@@ -78,3 +86,14 @@ def test_fitness_linear_threshold_baixo_favorece_recall():
     fitness_alto = ga_utils.fitness_linear(alto, X, y)
     # limiar baixo prevê mais casos como positivos -> mais recall -> fitness (que pesa recall) mais alto
     assert fitness_baixo >= fitness_alto
+
+
+def test_rodar_ga_retorna_historico_e_melhor_individuo():
+    X, y = _dataset_sintetico()
+    populacao, historico, fitnesses, melhor = ga_utils.rodar_ga(
+        "regressao_linear", X, y, X, y,
+        tamanho_populacao=4, geracoes=3, mutacao=0.1, seed=0,
+    )
+    assert len(historico) == 3
+    assert len(fitnesses) == 4
+    assert set(melhor) == {"fit_intercept", "positive", "threshold"}
