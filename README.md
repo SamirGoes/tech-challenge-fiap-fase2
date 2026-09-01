@@ -79,6 +79,8 @@ Detalhes de cada experimento, exame simplificado, LLM, API/front e links dos ent
 
 O melhor modelo otimizado (Regressão Logística) é exposto como uma API (FastAPI) rodando em AWS Lambda com autoscaling automático, atrás de uma Function URL — arquitetura completa em [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md#implementação-em-nuvem-opcional-item-de-pontuação-extra), passos de deploy em [`terraform/README.md`](terraform/README.md).
 
+**Aplicação publicada:** https://d3u4nxzfcqh14d.cloudfront.net/
+
 ```bash
 # 1. Treinar e persistir o modelo (gera api/model/*.joblib)
 python scripts/treinar_modelo_final.py
@@ -105,5 +107,5 @@ npm start
 - [x] Testes automatizados (`tests/`)
 - [x] Relatório técnico (`RELATORIO_TECNICO.md`)
 - [x] Notebook de demonstração (`notebooks/GA_HyperparametersOptimization.ipynb`)
-- [x] **Opcional/extra:** Implementação em nuvem — API com autoscaling (`api/`, `Dockerfile`, `terraform/`)
-- [ ] Vídeo de demonstração (até 15 min, YouTube/Vimeo)
+- [x] **Opcional/extra:** Implementação em nuvem — API com autoscaling (`api/`, `Dockerfile`, `terraform/`) — https://d3u4nxzfcqh14d.cloudfront.net/
+- [x] Vídeo de demonstração (até 15 min): https://youtu.be/B7IVvdhWeQM
