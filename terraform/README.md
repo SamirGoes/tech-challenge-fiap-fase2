@@ -1,6 +1,6 @@
 # Deploy da API + Frontend na AWS
 
-Pré-requisitos: conta AWS configurada localmente (`aws configure`), Terraform >= 1.5, Docker rodando, Node.js/npm (pra buildar o frontend Angular).
+Pré-requisitos: conta AWS configurada localmente (`aws configure`), Terraform >= 1.5, Docker rodando. Node.js/npm **não são necessários** — o build do frontend Angular também roda dentro de um container Docker (ver passo 4).
 
 ## Arquitetura
 
@@ -82,11 +82,18 @@ A criação da distribuição CloudFront demora de 5 a 15 minutos pra propagar g
 
 ## 4. Build e upload do frontend
 
+O build do Angular roda dentro de um container Node — não precisa ter Node.js/npm instalado na máquina, só Docker.
+
 ```bash
-cd ../frontend
-npm install
-npm run build
 cd ..
+docker run --rm \
+  -v "$(pwd)/frontend:/app" \
+  -w /app \
+  --user "$(id -u):$(id -g)" \
+  -e HOME=/tmp \
+  -e npm_config_cache=/tmp/.npm-cache \
+  node:22 \
+  sh -c "npm install && npm run build"
 
 BUCKET=$(cd terraform && terraform output -raw frontend_bucket)
 DIST_ID=$(cd terraform && terraform output -raw cloudfront_distribution_id)
@@ -97,6 +104,36 @@ aws cloudfront create-invalidation --distribution-id "$DIST_ID" --paths "/*"
 
 Repita esse passo (sync + invalidation) a cada novo build do front — o Terraform não faz isso
 automaticamente.
+
+**Por que as flags `--user`, `HOME` e `npm_config_cache`**: rodar o container como `root`
+funciona, mas deixa `node_modules/` e `dist/` no host com dono `root` (dá dor de cabeça depois,
+pra apagar ou reeditar esses arquivos sem `sudo`). Com `--user "$(id -u):$(id -g)"` os arquivos
+saem com o dono certo — só que aí o `npm` tenta escrever cache/config em `/.npm` (home padrão do
+container, que não pertence a esse usuário) e falha com `EACCES`. Setar `HOME=/tmp` e
+`npm_config_cache=/tmp/.npm-cache` resolve, porque `/tmp` dentro do container é sempre gravável
+por qualquer usuário.
+
+### Troubleshooting: `Mounts denied` / `is not shared from the host`
+
+Se o Docker reclamar que o caminho do projeto "is not shared from the host and is not known to
+Docker", é o Docker Desktop bloqueando o bind mount por política de *file sharing* (Mac/Windows).
+Duas soluções:
+
+1. **Liberar o caminho no Docker Desktop** (permanente): Docker Desktop → *Settings* → *Resources*
+   → *File Sharing* → adiciona a pasta do projeto (ou o `$HOME` inteiro) → *Apply & Restart*.
+2. **Contornar sem mexer nas configs** (pontual): copiar `frontend/` pra dentro de um caminho que
+   já esteja liberado por padrão (`/tmp`, `/private/tmp` ou `/Users/<usuario>/Repositories` em
+   instalações padrão), rodar o `docker run` apontando o volume pra lá, e depois `rsync` o `dist/`
+   de volta:
+
+   ```bash
+   SCRATCH=$(mktemp -d /tmp/frontend-build.XXXXXX)
+   rsync -a --exclude node_modules --exclude dist frontend/ "$SCRATCH/"
+   docker run --rm -v "$SCRATCH:/app" -w /app \
+     --user "$(id -u):$(id -g)" -e HOME=/tmp -e npm_config_cache=/tmp/.npm-cache \
+     node:22 sh -c "npm install && npm run build"
+   rsync -a "$SCRATCH/dist/" frontend/dist/
+   ```
 
 ## 5. Testar
 

@@ -16,85 +16,85 @@
   "features": [
     {
       "feature": "texture_worst",
-      "importancia": 0.8354318417420602
+      "importancia": 0.8354318417420603
     },
     {
       "feature": "radius_se",
-      "importancia": 0.6841054108478585
+      "importancia": 0.6841054108478581
     },
     {
       "feature": "radius_worst",
-      "importancia": 0.6221783398606425
+      "importancia": 0.6221783398606424
     },
     {
       "feature": "symmetry_worst",
-      "importancia": 0.619128657667321
+      "importancia": 0.6191286576673211
     },
     {
       "feature": "area_worst",
-      "importancia": 0.5787925584844094
+      "importancia": 0.5787925584844096
     },
     {
       "feature": "concave points_mean",
-      "importancia": 0.5718912952574885
+      "importancia": 0.5718912952574884
     },
     {
       "feature": "perimeter_worst",
-      "importancia": 0.5466017336111502
+      "importancia": 0.5466017336111503
     },
     {
       "feature": "concave points_worst",
-      "importancia": 0.5379186644411351
+      "importancia": 0.5379186644411349
     },
     {
       "feature": "concavity_worst",
-      "importancia": 0.5114123206690753
+      "importancia": 0.511412320669075
     },
     {
       "feature": "area_se",
-      "importancia": 0.5033324887192485
+      "importancia": 0.5033324887192486
     }
   ],
   "ranking_completo": [
     {
       "feature": "texture_worst",
-      "importancia": 0.8354318417420602
+      "importancia": 0.8354318417420603
     },
     {
       "feature": "radius_se",
-      "importancia": 0.6841054108478585
+      "importancia": 0.6841054108478581
     },
     {
       "feature": "radius_worst",
-      "importancia": 0.6221783398606425
+      "importancia": 0.6221783398606424
     },
     {
       "feature": "symmetry_worst",
-      "importancia": 0.619128657667321
+      "importancia": 0.6191286576673211
     },
     {
       "feature": "area_worst",
-      "importancia": 0.5787925584844094
+      "importancia": 0.5787925584844096
     },
     {
       "feature": "concave points_mean",
-      "importancia": 0.5718912952574885
+      "importancia": 0.5718912952574884
     },
     {
       "feature": "perimeter_worst",
-      "importancia": 0.5466017336111502
+      "importancia": 0.5466017336111503
     },
     {
       "feature": "concave points_worst",
-      "importancia": 0.5379186644411351
+      "importancia": 0.5379186644411349
     },
     {
       "feature": "concavity_worst",
-      "importancia": 0.5114123206690753
+      "importancia": 0.511412320669075
     },
     {
       "feature": "area_se",
-      "importancia": 0.5033324887192485
+      "importancia": 0.5033324887192486
     },
     {
       "feature": "texture_mean",
@@ -102,59 +102,59 @@
     },
     {
       "feature": "perimeter_se",
-      "importancia": 0.47139124993095977
+      "importancia": 0.47139124993096
     },
     {
       "feature": "compactness_se",
-      "importancia": 0.453513397257885
+      "importancia": 0.4535133972578849
     },
     {
       "feature": "concavity_mean",
-      "importancia": 0.4455897638136772
+      "importancia": 0.4455897638136774
     },
     {
       "feature": "area_mean",
-      "importancia": 0.4039607659153117
+      "importancia": 0.4039607659153116
     },
     {
       "feature": "radius_mean",
-      "importancia": 0.39928848412197365
+      "importancia": 0.39928848412197376
     },
     {
       "feature": "smoothness_worst",
-      "importancia": 0.3907629752965929
+      "importancia": 0.39076297529659293
     },
     {
       "feature": "perimeter_mean",
-      "importancia": 0.3865134598658414
+      "importancia": 0.38651345986584135
     },
     {
       "feature": "fractal_dimension_se",
-      "importancia": 0.354002660197191
+      "importancia": 0.3540026601971909
     },
     {
       "feature": "concave points_se",
-      "importancia": 0.2586930642606684
+      "importancia": 0.25869306426066835
     },
     {
       "feature": "smoothness_mean",
-      "importancia": 0.24996505885113773
+      "importancia": 0.24996505885113787
     },
     {
       "feature": "fractal_dimension_mean",
-      "importancia": 0.19788176842124858
+      "importancia": 0.19788176842124874
     },
     {
       "feature": "symmetry_se",
-      "importancia": 0.1837448488154099
+      "importancia": 0.18374484881540984
     },
     {
       "feature": "texture_se",
-      "importancia": 0.09958441645075918
+      "importancia": 0.0995844164507592
     },
     {
       "feature": "compactness_mean",
-      "importancia": 0.09319165608683903
+      "importancia": 0.09319165608683896
     },
     {
       "feature": "fractal_dimension_worst",
@@ -162,19 +162,19 @@
     },
     {
       "feature": "smoothness_se",
-      "importancia": 0.07420717863160677
+      "importancia": 0.0742071786316068
     },
     {
       "feature": "compactness_worst",
-      "importancia": 0.04999992224825681
+      "importancia": 0.04999992224825684
     },
     {
       "feature": "concavity_se",
-      "importancia": 0.04428856835472802
+      "importancia": 0.0442885683547281
     },
     {
       "feature": "symmetry_mean",
-      "importancia": 0.010874283477486157
+      "importancia": 0.01087428347748624
     }
   ]
 }

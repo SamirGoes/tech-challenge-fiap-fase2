@@ -196,7 +196,7 @@ O modelo otimizado foi empacotado para AWS, com infraestrutura em Terraform (`te
 - **SSM Parameter Store** para a chave da Anthropic  
 - **CloudWatch Logs**
 
-Detalhes em [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) e [terraform/README.md](terraform/README.md). A API foi validada localmente com `uvicorn`. O `terraform apply` na conta AWS fica para o momento do deploy da demo.
+Detalhes em [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) e [terraform/README.md](terraform/README.md). A API foi validada localmente com `uvicorn`.
 
 ---
 
@@ -223,7 +223,7 @@ Encadeamento: **GA escolhe o modelo → o modelo aponta as 10 medidas → JSON a
 |---|---|
 | Repositório Git | https://github.com/SamirGoes/tech-challenge-fiap-fase2 |
 | Notebook | https://github.com/SamirGoes/tech-challenge-fiap-fase2/blob/main/notebooks/GA_HyperparametersOptimization.ipynb |
-| Aplicação (AWS) | *inserir a URL pública da API na AWS (usada no vídeo)* |
+| Aplicação (AWS) | [Triagem de câncer de mama](https://d3u4nxzfcqh14d.cloudfront.net)|
 | Vídeo (até 15 min) | *inserir o link do YouTube/Vimeo depois de publicar* |
 
 Como executar: `git clone` do repositório → `pip install -r requirements.txt` → `jupyter notebook notebooks/GA_HyperparametersOptimization.ipynb`

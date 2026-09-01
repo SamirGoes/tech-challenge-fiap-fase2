@@ -1,21 +1,19 @@
 LAUDO
 
-**LAUDO DE TRIAGEM AUTOMÁTICA — CÂNCER DE MAMA**
-
----
+**LAUDO DE TRIAGEM AUTOMÁTICA DE CÂNCER DE MAMA**
 
 **Resultado: POSITIVO — Tumor classificado como MALIGNO**
 
-Nossa detecção automática indicou **100% de chance de o tumor ser maligno**. O que mais chamou atenção foi a textura extremamente irregular da lesão, que foi o fator decisivo. Além disso, o tamanho do tumor é significativamente aumentado, e há bastante variação nas suas dimensões, o que reforça a suspeita de malignidade.
+A triagem automática indicou **100% de chance de o tumor ser maligno**. A detecção se baseou principalmente em três características preocupantes: a textura extremamente alterada do nódulo, o tamanho bastante aumentado e uma variação irregular no raio que sugere bordas não uniformes. Esses achados em conjunto levantam sinal de alerta para malignidade.
 
-Importante lembrar que este é um resultado de triagem automática e **não substitui o diagnóstico clínico definitivo**. Recomenda-se confirmação com avaliação médica e exames adicionais conforme protocolo.
+É importante ressaltar que este é um resultado de triagem automática e **não substitui o diagnóstico clínico e a avaliação de um especialista**. Recomenda-se prosseguir com investigação diagnóstica complementar urgente, incluindo análise clínica detalhada e confirmação anatomopatológica.
 
 RELATÓRIO
 
 # Relatório do Experimento de Triagem de Câncer de Mama
 
-O método otimizado com Algoritmo Genético apresentou o melhor desempenho, alcançando acurácia de 98.2%, recall de 97.6% e F1 de 0.98. Em comparação com a versão original, a otimização melhorou significativamente a capacidade de detecção, especialmente na taxa de acerto para casos positivos (recall).
+O modelo otimizado com Regressão Logística apresentou o melhor desempenho, alcançando acurácia de 98.2%, recall de 97.6% e F1 de 0.98. Comparado à versão original, houve melhora significativa em todas as métricas avaliadas. O modelo otimizado foi configurado com parâmetros específicos (C=0.2184, penalidade L2 e ponderação balanceada) que tornaram a triagem mais eficaz.
 
-As características que mais influenciaram as decisões do modelo foram: a textura do tumor (peso 0.835), a variação do raio (peso 0.684), o raio extremo (peso 0.622) e a simetria (peso 0.619). Também contribuíram de forma importante a área extrema, os pontos côncavos do contorno e o perímetro.
+As características das lesões que mais influenciaram o resultado foram: a textura (com maior peso), seguida pela variação do raio e seus valores extremos. Também contribuíram significativamente a simetria, a área total, a quantidade de pontos côncavos no contorno e o perímetro. Esses aspectos morfológicos do tumor mostram-se relevantes para a classificação automática.
 
-Estes resultados indicam que o modelo otimizado é robusto e confiável para apoiar a triagem automática em mamografias, identificando corretamente a maioria dos casos suspeitos.
+O modelo manteve seu desempenho robusto quando testado em dados independentes (holdout), confirmando que os resultados não foram apenas ajustados aos dados de treinamento. Portanto, a abordagem otimizada é confiável para apoiar a triagem inicial de casos suspeitos.
