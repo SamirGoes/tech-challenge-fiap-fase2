@@ -224,6 +224,6 @@ Encadeamento: **GA escolhe o modelo → o modelo aponta as 10 medidas → JSON a
 | Repositório Git | https://github.com/SamirGoes/tech-challenge-fiap-fase2 |
 | Notebook | https://github.com/SamirGoes/tech-challenge-fiap-fase2/blob/main/notebooks/GA_HyperparametersOptimization.ipynb |
 | Aplicação (AWS) | [Triagem de câncer de mama](https://d3u4nxzfcqh14d.cloudfront.net)|
-| Vídeo (até 15 min) | *inserir o link do YouTube/Vimeo depois de publicar* |
+| Vídeo (até 15 min) | https://youtu.be/B7IVvdhWeQM |
 
 Como executar: `git clone` do repositório → `pip install -r requirements.txt` → `jupyter notebook notebooks/GA_HyperparametersOptimization.ipynb`
