@@ -69,11 +69,11 @@ Baseline (Regressão Logística com hiperparâmetros padrão) vs. as 3 configura
 | Versão | Accuracy | Precision | Recall | F1 |
 |---|---|---|---|---|
 | Original | 0.9737 | 0.9756 | 0.9524 | 0.9639 |
-| **Experimento 1 — Padrão (torneio + mutação fixa)** | **0.9825** | 0.9762 | **0.9762** | **0.9762** |
-| Experimento 2 — Mutação adaptativa | 0.9737 | 0.9756 | 0.9524 | 0.9639 |
-| Experimento 3 — Mutação adaptativa + roleta | 0.9737 | 0.9756 | 0.9524 | 0.9639 |
+| **Experimento 1 — Padrão (torneio + mutação fixa)** | **0.9912** | **0.9767** | **1.0000** | **0.9882** |
+| Experimento 2 — Mutação adaptativa | 0.9912 | 0.9767 | 1.0000 | 0.9882 |
+| Experimento 3 — Mutação adaptativa + roleta | 0.9912 | 0.9767 | 1.0000 | 0.9882 |
 
-Detalhes de cada experimento (hiperparâmetros encontrados, curvas de convergência, discussão sobre por que 2 dos 3 experimentos empataram com o baseline) estão no [RELATORIO_TECNICO.md](RELATORIO_TECNICO.md).
+Detalhes de cada experimento, exame simplificado, LLM, API/front e links dos entregáveis estão no [RELATORIO_TECNICO.md](RELATORIO_TECNICO.md).
 
 ## Implementação em nuvem (opcional)
 
